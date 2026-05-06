@@ -142,6 +142,15 @@
       50%       { transform: rotate(2deg)  translateZ(0); }
     }
 
+    /* FIX 3 — Liquid morphing blob for mobile slot cards */
+    @keyframes liquidBlob {
+      0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      25%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      50%  { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+      75%  { border-radius: 60% 40% 60% 40% / 70% 30% 60% 40%; }
+      100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+    }
+
     /* ══════════════════════════════════════════════════
        LAYOUT
     ══════════════════════════════════════════════════ */
@@ -220,10 +229,10 @@
       overflow: hidden;
     }
 
+    /* FIX 5 — JS controls canvas dimensions for DPR; CSS provides display baseline */
     canvas {
       display: block;
-      width: 100%;
-      height: auto;
+      max-width: 100%;
       background: #030303;
     }
 
@@ -783,6 +792,10 @@
 
     @media (max-width: 768px) {
       .crt-noise    { display: none !important; }
+
+      /* FIX 2 — bottom padding prevents fixed elements from overlapping content */
+      body          { padding-bottom: 150px; }
+
       .site-wrap    { width: 94vw; }
       .logo-wrap img { height: 64px; max-width: 180px; }
       .nav          { gap: 14px; font-size: 11px; }
@@ -795,18 +808,46 @@
       .slot-card    { min-height: 140px; }
       .community-inner { flex-direction: column; }
 
-      .culture-corner { width: 160px; height: 130px; right: 10px; bottom: 10px; opacity: 0.92; }
+      /* FIX 2 — scale down culture corner to stop blocking UI */
+      .culture-corner {
+        width: 160px; height: 130px; right: 10px; bottom: 10px; opacity: 0.92;
+        transform: scale(0.7);
+        transform-origin: bottom right;
+      }
       .hali    { width: 140px; }
       .tesbih  { width: 80px; right: 58px; bottom: 8px; }
       .cay     { width: 56px; right: 28px; bottom: 22px; }
 
+      /* FIX 2 — shrink DJ pads on mobile */
       #dj-hub { bottom: 10px; left: 10px; gap: 12px; }
-      .dj-pad { width: 64px; height: 64px; }
+      .dj-pad { width: 50px; height: 50px; }
 
       .lookbook-mascot { width: 78px; height: 78px; }
 
       .site-footer { padding: 60px 16px 40px; }
       .site-footer .footer-logo { height: 70px; }
+
+      /* FIX 3 — Liquid morphing blob animation for mobile slot cards only */
+      .slot-card {
+        overflow: hidden;
+        animation: fadeInUp 0.65s ease forwards, liquidBlob 6s ease-in-out infinite;
+      }
+      .slot-card:nth-child(1) {
+        animation: fadeInUp 0.65s 0.10s ease forwards, liquidBlob 6s 0s ease-in-out infinite;
+      }
+      .slot-card:nth-child(2) {
+        animation: fadeInUp 0.65s 0.25s ease forwards, liquidBlob 6.5s 0.8s ease-in-out infinite;
+      }
+      .slot-card:nth-child(3) {
+        animation: fadeInUp 0.65s 0.40s ease forwards, liquidBlob 7s 1.6s ease-in-out infinite;
+      }
+      .slot-card:nth-child(4) {
+        animation: fadeInUp 0.65s 0.55s ease forwards, liquidBlob 5.5s 2.4s ease-in-out infinite;
+      }
+      .slot-card:hover {
+        animation: slotPulse 1.4s ease-in-out infinite;
+        border-radius: 0;
+      }
     }
   </style>
 </head>
@@ -1093,8 +1134,14 @@
 
     /* ══════════════════════════════════════════════════
        MINI GAME — BULLETPROOF ENGINE
-       Assets: istanbul_bg.png · nazar.png · engel.png
-       Promise.all + Promise.race(3 000ms) timeout
+       FIX 1: No emoji fallback. Game starts ONLY when ALL
+               four images (bgImg, playerImg, obstacleImg,
+               boncukImg) fully resolve via Promise.all.
+               On failure the loading screen stays visible.
+       FIX 4: Frame-based pipe spawn (frames % 180),
+               gap 160, gravity 0.2, jump -4.5, speed 1.5.
+       FIX 5: Device Pixel Ratio (DPR) canvas scaling for
+               crisp HD rendering on high-density screens.
     ══════════════════════════════════════════════════ */
     (function () {
       var canvas  = document.getElementById("nazarCanvas");
@@ -1114,7 +1161,7 @@
 
       /* Shared game-character state — read by the render loop,
          written by the DJ Hub toggle below via window bridge.    */
-      var activeGameCharacter = null;   /* set after assets load */
+      var activeGameCharacter = null;
 
       /* Public bridge: DJ Hub writes here; game loop reads here. */
       window.KISMET_setChar = function (who) {
@@ -1125,109 +1172,111 @@
         }
       };
 
-      var useFallback = false;
-      var assetsLoading = true;  /* true until loadAssets() resolves */
+      /* FIX 1 — assetsLoaded stays false until Promise.all resolves */
+      var assetsLoaded = false;
 
+      /* FIX 5 — DPR vars; logical dimensions drive all game math */
+      var dpr = window.devicePixelRatio || 1;
+      var logicalW = 520, logicalH = 620;
+
+      /* FIX 1 — imgPromise rejects on error; no fallback path */
       function imgPromise(img) {
-        return new Promise(function (resolve) {
-          if (img.complete && img.naturalWidth > 0) { resolve(true); return; }
-          img.onload  = function () { resolve(true); };
-          img.onerror = function () { resolve(false); };
+        return new Promise(function (resolve, reject) {
+          if (img.complete && img.naturalWidth > 0) { resolve(); return; }
+          img.onload  = function () { resolve(); };
+          img.onerror = function () { reject(new Error("[KISMET] Failed to load asset: " + img.src)); };
         });
       }
 
-      function loadAssets() {
-        /* boncuk is a bonus asset — its failure must never block the game */
-        var all = Promise.all([
-            imgPromise(bgImg), imgPromise(playerImg), imgPromise(obstacleImg)
-          ]).then(function (r) { return r.every(Boolean); });
-        imgPromise(boncukImg); /* fire-and-forget: loads alongside */
-        /* 15 000 ms timeout to handle custom-domain latency — fallback only fires at the end */
-        var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(false); }, 15000); });
-        return Promise.race([all, timeout]);
-      }
-
+      /* FIX 4 — Balanced physics: gentle gravity, wider gap, slower pipes */
       var state = {
         started: false, over: false, score: 0,
-        bgX: 0, bgSpeed: 1.2, gravity: 0.25, jump: -5.0,
-        pipeGap: 135, pipeSpeed: 1.8, pipeWidth: 92,
-        spawnInterval: 1500, lastSpawn: 0, lastScorePipeId: null
+        bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
+        pipeGap: 160, pipeSpeed: 1.5, pipeWidth: 92,
+        lastScorePipeId: null
       };
 
+      /* FIX 4 — frame counter for spawn interval logic */
+      var frames = 0;
       var player = { x: 112, y: 0, w: 42, h: 42, vy: 0 };
       var pipes = [], pipeIdSeed = 0, lastTime = 0;
 
+      /* FIX 5 — resize applies DPR scaling; all drawing uses logicalW/H */
       function resize() {
+        dpr = window.devicePixelRatio || 1;
         var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        canvas.width  = vw <= 768 ? 360 : 520;
-        canvas.height = vw <= 768 ? 520 : 620;
-        player.x      = vw <= 768 ?  82 : 112;
-        player.y = canvas.height * 0.45;
+        logicalW = vw <= 768 ? 360 : 520;
+        logicalH = vw <= 768 ? 520 : 620;
+
+        canvas.width  = Math.floor(logicalW * dpr);
+        canvas.height = Math.floor(logicalH * dpr);
+        canvas.style.width  = logicalW + "px";
+        canvas.style.height = logicalH + "px";
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0); /* reset before re-applying scale */
+        ctx.scale(dpr, dpr);
+
+        player.x = vw <= 768 ? 82 : 112;
+        player.y = logicalH * 0.45;
       }
 
       function reset() {
         state.started = state.over = false; state.score = 0;
-        state.bgX = state.lastSpawn = 0; state.lastScorePipeId = null;
+        state.bgX = 0; state.lastScorePipeId = null;
+        frames = 0;
         pipes.length = 0;
-        player.y = canvas.height * 0.45; player.vy = 0;
+        player.y = logicalH * 0.45; player.vy = 0;
         scoreEl.textContent = "0";
         overlay.style.display = "none";
       }
 
-      function spawn(t) {
-        var mg = 50, mn = mg + 120, mx = canvas.height - mg - 120;
-        pipes.push({ id: ++pipeIdSeed, x: canvas.width + state.pipeWidth + 10,
-                     gapY: Math.floor(Math.random() * (mx - mn + 1)) + mn });
-        state.lastSpawn = t;
+      function spawn() {
+        var mg = 50, mn = mg + 120, mx = logicalH - mg - 120;
+        pipes.push({
+          id: ++pipeIdSeed,
+          x: logicalW + state.pipeWidth + 10,
+          gapY: Math.floor(Math.random() * (mx - mn + 1)) + mn
+        });
       }
 
+      /* ── Drawing — image-only, no emoji fallback (FIX 1) ── */
       function drawBgImg() {
-        var s = canvas.height / bgImg.naturalHeight, w = bgImg.naturalWidth * s;
-        if (w <= 0) { drawBgFB(); return; }
-        ctx.drawImage(bgImg, Math.floor(state.bgX), 0, Math.floor(w), canvas.height);
-        ctx.drawImage(bgImg, Math.floor(state.bgX + w), 0, Math.floor(w), canvas.height);
+        var s = logicalH / bgImg.naturalHeight, w = bgImg.naturalWidth * s;
+        if (w <= 0) return;
+        ctx.drawImage(bgImg, Math.floor(state.bgX), 0, Math.floor(w), logicalH);
+        ctx.drawImage(bgImg, Math.floor(state.bgX + w), 0, Math.floor(w), logicalH);
         state.bgX -= state.bgSpeed;
         if (state.bgX <= -w) state.bgX = 0;
       }
+
       function drawPlyImg() {
         var char = activeGameCharacter || playerImg;
         ctx.drawImage(char, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
+
       function drawPipeImg(p) {
         var tH = p.gapY - state.pipeGap / 2, bY = p.gapY + state.pipeGap / 2;
-        ctx.save(); ctx.translate(Math.floor(p.x), Math.floor(tH)); ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, Math.floor(tH)); ctx.restore();
-        ctx.drawImage(obstacleImg, Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
+        ctx.save();
+        ctx.translate(Math.floor(p.x), Math.floor(tH));
+        ctx.scale(1, -1);
+        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, Math.floor(tH));
+        ctx.restore();
+        ctx.drawImage(obstacleImg, Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(logicalH - bY));
       }
 
-      function drawBgFB() { ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
-      function drawPlyFB() {
-        ctx.font = player.h + "px serif"; ctx.textAlign = "left"; ctx.textBaseline = "top";
-        ctx.fillText("\uD83E\uDDFF", player.x, player.y);
+      function hit(a, b) {
+        return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
       }
-      function drawPipeFB(p) {
-        var tH = p.gapY - state.pipeGap / 2, bY = p.gapY + state.pipeGap / 2;
-        ctx.fillStyle = "#5b7c99";
-        ctx.fillRect(Math.floor(p.x), 0, state.pipeWidth, Math.floor(tH));
-        ctx.fillRect(Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
-        ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 1;
-        ctx.strokeRect(Math.floor(p.x), 0, state.pipeWidth, Math.floor(tH));
-        ctx.strokeRect(Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
-      }
-
-      function drawBg()    { useFallback ? drawBgFB()    : drawBgImg(); }
-      function drawPly()   { useFallback ? drawPlyFB()   : drawPlyImg(); }
-      function drawPipe(p) { useFallback ? drawPipeFB(p) : drawPipeImg(p); }
-
-      function hit(a, b) { return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h); }
 
       function collide() {
         var pb = { x: player.x + 3, y: player.y + 3, w: player.w - 6, h: player.h - 6 };
-        if (player.y <= 0 || player.y + player.h >= canvas.height) { gameOver(); return; }
+        if (player.y <= 0 || player.y + player.h >= logicalH) { gameOver(); return; }
         for (var i = 0; i < pipes.length; i++) {
           var p = pipes[i], tH = p.gapY - state.pipeGap / 2, bY = p.gapY + state.pipeGap / 2;
           if (hit(pb, { x: p.x, y: 0, w: state.pipeWidth, h: tH }) ||
-              hit(pb, { x: p.x, y: bY, w: state.pipeWidth, h: canvas.height - bY })) { gameOver(); return; }
+              hit(pb, { x: p.x, y: bY, w: state.pipeWidth, h: logicalH - bY })) {
+            gameOver(); return;
+          }
           if (p.x + state.pipeWidth < player.x && state.lastScorePipeId !== p.id) {
             state.score++; state.lastScorePipeId = p.id; scoreEl.textContent = String(state.score);
           }
@@ -1243,8 +1292,12 @@
 
       function update(dt, t) {
         if (!state.started || state.over) return;
+        frames++;
         player.vy += state.gravity; player.y += player.vy;
-        if (!state.lastSpawn || t - state.lastSpawn > state.spawnInterval) spawn(t);
+
+        /* FIX 4 — Frame-based spawn: first pipe at frame 60, then every 180 frames */
+        if (frames === 60 || (frames > 60 && (frames - 60) % 180 === 0)) spawn();
+
         for (var i = pipes.length - 1; i >= 0; i--) {
           pipes[i].x -= state.pipeSpeed;
           if (pipes[i].x + state.pipeWidth < -10) pipes.splice(i, 1);
@@ -1253,32 +1306,34 @@
       }
 
       function render() {
-        /* While assets are still loading, show a canvas loading screen —
-           the CSS spinner overlay is also visible above us at z-index 10.
-           This prevents ANY game content (including emoji fallback) from
-           flashing until the 15-second timeout is actually breached.     */
-        if (assetsLoading) {
+        /* FIX 1 — While assets are loading show ONLY the dark canvas + white text.
+           The CSS spinner overlay also sits above at z-index 10. No game content
+           or emoji fallback is ever rendered until all assets are confirmed loaded. */
+        if (!assetsLoaded) {
           ctx.fillStyle = "#050505";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.fillRect(0, 0, logicalW, logicalH);
           ctx.save();
           ctx.fillStyle = "#ffffff";
           ctx.font = "bold 13px Courier New";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("ASSETS YÜKLENİYOR... // PLEASE WAIT", canvas.width / 2, canvas.height / 2);
+          ctx.fillText("ASSETS YÜKLENİYOR... // PLEASE WAIT", logicalW / 2, logicalH / 2);
           ctx.restore();
           return;
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawBg(); pipes.forEach(drawPipe); drawPly();
+        ctx.clearRect(0, 0, logicalW, logicalH);
+        drawBgImg();
+        pipes.forEach(drawPipeImg);
+        drawPlyImg();
+
         if (!state.started && !state.over) {
           ctx.save();
           ctx.fillStyle = "rgba(5,5,5,0.60)";
-          ctx.fillRect(0, Math.floor(canvas.height / 2 - 28), canvas.width, 44);
+          ctx.fillRect(0, Math.floor(logicalH / 2 - 28), logicalW, 44);
           ctx.fillStyle = "#fff"; ctx.font = "13px Courier New";
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
-          ctx.fillText("BAŞLAMAK İÇİN TIKLA VEYA BOŞLUK TUŞUNA BAS", canvas.width / 2, canvas.height / 2);
+          ctx.fillText("BAŞLAMAK İÇİN TIKLA VEYA BOŞLUK TUŞUNA BAS", logicalW / 2, logicalH / 2);
           ctx.restore();
         }
       }
@@ -1290,21 +1345,30 @@
       window.addEventListener("keydown", function (e) { if (e.code === "Space") { e.preventDefault(); flap(); } });
       canvas.addEventListener("click", flap);
       retryBtn.addEventListener("click", reset);
+
+      /* FIX 5 — Re-apply DPR on resize */
       window.addEventListener("resize", function () { resize(); reset(); });
 
       resize();
-      /* Start the rAF loop immediately so the canvas loading screen is live */
+      /* rAF loop starts immediately so the loading screen canvas is live */
       requestAnimationFrame(loop);
-      loadAssets().then(function (ok) {
-        if (!ok) { console.warn("[KISMET] Görsel yükleme başarısız — fallback mod."); useFallback = true; }
-        activeGameCharacter = playerImg; /* default: Nazar */
-        assetsLoading = false;
-        loader.style.display = "none"; reset();
-      }).catch(function (e) {
-        console.error("[KISMET]", e); useFallback = true;
+
+      /* FIX 1 — Promise.all on ALL four assets; no timeout/race/fallback.
+         The game only initialises when every image is confirmed loaded.
+         If any asset fails, the loading screen remains and the error is logged. */
+      Promise.all([
+        imgPromise(bgImg),
+        imgPromise(playerImg),
+        imgPromise(obstacleImg),
+        imgPromise(boncukImg)
+      ]).then(function () {
         activeGameCharacter = playerImg;
-        assetsLoading = false;
-        loader.style.display = "none"; reset();
+        assetsLoaded = true;
+        loader.style.display = "none";
+        reset();
+      }).catch(function (err) {
+        console.error("[KISMET] Asset loading failed — game will not start.", err);
+        /* Loading screen stays visible; assetsLoaded remains false */
       });
 
     })();
