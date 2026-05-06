@@ -253,8 +253,9 @@
     .game-tip {
       text-align: center;
       font-size: 12px;
-      color: #d8e1e8;
-      letter-spacing: 1px;
+      color: #ffffff;
+      font-weight: bold;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
       margin-top: 10px;
       margin-bottom: 18px;
@@ -489,9 +490,10 @@
       position: absolute;
       top: 10px; left: 10px;
       font-size: 11px;
-      letter-spacing: 1.2px;
+      letter-spacing: 1.5px;
+      font-weight: bold;
       text-transform: uppercase;
-      color: #cad5df;
+      color: #ffffff;
     }
 
     .right-stack { display: grid; grid-template-rows: 1fr 1fr; gap: 14px; }
@@ -524,9 +526,10 @@
     .lookbook-hint {
       font-family: var(--mono);
       font-size: 10px;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
+      font-weight: bold;
       text-transform: uppercase;
-      color: #3a5060;
+      color: #ffffff;
       align-self: flex-start;
     }
 
@@ -550,6 +553,7 @@
     }
 
     .lookbook-mascot:hover {
+      transform: scale(1.05);
       filter: drop-shadow(0 0 10px rgba(91,124,153,0.5));
     }
 
@@ -564,8 +568,16 @@
       -webkit-backface-visibility: hidden;
     }
 
-    .mascot-face.front { transform: rotateY(0deg); }
-    .mascot-face.back  { transform: rotateY(180deg); }
+    .mascot-face.front {
+      transform: rotateY(0deg);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .mascot-face.back {
+      transform: rotateY(180deg);
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
 
     .mascot-face img {
       width: 100%;
@@ -754,6 +766,7 @@
     }
 
     @media (max-width: 768px) {
+      .crt-noise    { display: none !important; }
       .site-wrap    { width: 94vw; }
       .logo-wrap img { height: 64px; max-width: 180px; }
       .nav          { gap: 14px; font-size: 11px; }
@@ -1097,6 +1110,7 @@
       };
 
       var useFallback = false;
+      var assetsLoading = true;  /* true until loadAssets() resolves */
 
       function imgPromise(img) {
         return new Promise(function (resolve) {
@@ -1112,14 +1126,15 @@
             imgPromise(bgImg), imgPromise(playerImg), imgPromise(obstacleImg)
           ]).then(function (r) { return r.every(Boolean); });
         imgPromise(boncukImg); /* fire-and-forget: loads alongside */
-        var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(false); }, 3000); });
+        /* 15 000 ms timeout to handle custom-domain latency — fallback only fires at the end */
+        var timeout = new Promise(function (resolve) { setTimeout(function () { resolve(false); }, 15000); });
         return Promise.race([all, timeout]);
       }
 
       var state = {
         started: false, over: false, score: 0,
-        bgX: 0, bgSpeed: 1.2, gravity: 0.42, jump: -6.9,
-        pipeGap: 155, pipeSpeed: 2.2, pipeWidth: 92,
+        bgX: 0, bgSpeed: 1.2, gravity: 0.25, jump: -5.0,
+        pipeGap: 135, pipeSpeed: 1.8, pipeWidth: 92,
         spawnInterval: 1500, lastSpawn: 0, lastScorePipeId: null
       };
 
@@ -1153,20 +1168,20 @@
       function drawBgImg() {
         var s = canvas.height / bgImg.naturalHeight, w = bgImg.naturalWidth * s;
         if (w <= 0) { drawBgFB(); return; }
-        ctx.drawImage(bgImg, state.bgX, 0, w, canvas.height);
-        ctx.drawImage(bgImg, state.bgX + w, 0, w, canvas.height);
+        ctx.drawImage(bgImg, Math.floor(state.bgX), 0, Math.floor(w), canvas.height);
+        ctx.drawImage(bgImg, Math.floor(state.bgX + w), 0, Math.floor(w), canvas.height);
         state.bgX -= state.bgSpeed;
         if (state.bgX <= -w) state.bgX = 0;
       }
       function drawPlyImg() {
         var char = activeGameCharacter || playerImg;
-        ctx.drawImage(char, player.x, player.y, player.w, player.h);
+        ctx.drawImage(char, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
       function drawPipeImg(p) {
         var tH = p.gapY - state.pipeGap / 2, bY = p.gapY + state.pipeGap / 2;
-        ctx.save(); ctx.translate(p.x, tH); ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, tH); ctx.restore();
-        ctx.drawImage(obstacleImg, p.x, bY, state.pipeWidth, canvas.height - bY);
+        ctx.save(); ctx.translate(Math.floor(p.x), Math.floor(tH)); ctx.scale(1, -1);
+        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, Math.floor(tH)); ctx.restore();
+        ctx.drawImage(obstacleImg, Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
       }
 
       function drawBgFB() { ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
@@ -1177,11 +1192,11 @@
       function drawPipeFB(p) {
         var tH = p.gapY - state.pipeGap / 2, bY = p.gapY + state.pipeGap / 2;
         ctx.fillStyle = "#5b7c99";
-        ctx.fillRect(p.x, 0, state.pipeWidth, tH);
-        ctx.fillRect(p.x, bY, state.pipeWidth, canvas.height - bY);
+        ctx.fillRect(Math.floor(p.x), 0, state.pipeWidth, Math.floor(tH));
+        ctx.fillRect(Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
         ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.lineWidth = 1;
-        ctx.strokeRect(p.x, 0, state.pipeWidth, tH);
-        ctx.strokeRect(p.x, bY, state.pipeWidth, canvas.height - bY);
+        ctx.strokeRect(Math.floor(p.x), 0, state.pipeWidth, Math.floor(tH));
+        ctx.strokeRect(Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(canvas.height - bY));
       }
 
       function drawBg()    { useFallback ? drawBgFB()    : drawBgImg(); }
@@ -1222,12 +1237,29 @@
       }
 
       function render() {
+        /* While assets are still loading, show a canvas loading screen —
+           the CSS spinner overlay is also visible above us at z-index 10.
+           This prevents ANY game content (including emoji fallback) from
+           flashing until the 15-second timeout is actually breached.     */
+        if (assetsLoading) {
+          ctx.fillStyle = "#050505";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 13px Courier New";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("ASSETS YÜKLENİYOR... // PLEASE WAIT", canvas.width / 2, canvas.height / 2);
+          ctx.restore();
+          return;
+        }
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawBg(); pipes.forEach(drawPipe); drawPly();
         if (!state.started && !state.over) {
           ctx.save();
           ctx.fillStyle = "rgba(5,5,5,0.60)";
-          ctx.fillRect(0, canvas.height / 2 - 28, canvas.width, 44);
+          ctx.fillRect(0, Math.floor(canvas.height / 2 - 28), canvas.width, 44);
           ctx.fillStyle = "#fff"; ctx.font = "13px Courier New";
           ctx.textAlign = "center"; ctx.textBaseline = "middle";
           ctx.fillText("BAŞLAMAK İÇİN TIKLA VEYA BOŞLUK TUŞUNA BAS", canvas.width / 2, canvas.height / 2);
@@ -1245,14 +1277,18 @@
       window.addEventListener("resize", function () { resize(); reset(); });
 
       resize();
+      /* Start the rAF loop immediately so the canvas loading screen is live */
+      requestAnimationFrame(loop);
       loadAssets().then(function (ok) {
         if (!ok) { console.warn("[KISMET] Görsel yükleme başarısız — fallback mod."); useFallback = true; }
         activeGameCharacter = playerImg; /* default: Nazar */
-        loader.style.display = "none"; reset(); requestAnimationFrame(loop);
+        assetsLoading = false;
+        loader.style.display = "none"; reset();
       }).catch(function (e) {
         console.error("[KISMET]", e); useFallback = true;
         activeGameCharacter = playerImg;
-        loader.style.display = "none"; reset(); requestAnimationFrame(loop);
+        assetsLoading = false;
+        loader.style.display = "none"; reset();
       });
 
     })();
