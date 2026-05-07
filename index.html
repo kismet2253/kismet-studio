@@ -50,7 +50,7 @@
 
     /* ── HIGH-FASHION BRUTALIST Light mode ── */
     [data-theme="light"] {
-      --bg:         #f5f5f5;
+      --bg:         #DFD8C8;
       --text:       #1a1a1a;
       --white:      #1a1a1a;
       --blue:       #666666;
@@ -1175,7 +1175,7 @@
 
       <div class="canvas-loader" id="canvasLoader">
         <div class="canvas-loader-spinner"></div>
-        <span class="canvas-loader-text">ASSETS YÜKLENİYOR...</span>
+        <span class="canvas-loader-text">YÜKLENİYOR</span>
       </div>
 
       <canvas id="nazarCanvas" width="520" height="620" aria-label="Nazar uçuşu oyun tuvali"></canvas>
@@ -1773,35 +1773,9 @@
         ctx.drawImage(ch, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
 
-      /* Ornament Cap method — engel.png drawn ONLY at the tips at its true ratio.
-         A solid dark pillar fills the rest of each pipe column with zero distortion. */
       function drawPipeImg(p) {
-        var px  = Math.floor(p.x);
-        var pw  = state.pipeWidth;
-        var tH  = Math.floor(p.top);    // bottom edge of top pipe (gap top)
-        var bY  = Math.floor(p.bottom); // top edge of bottom pipe (gap bottom)
-
-        /* Native-ratio ornament height */
-        var ratio = (obstacleImg.naturalWidth && obstacleImg.naturalHeight)
-          ? obstacleImg.naturalHeight / obstacleImg.naturalWidth
-          : 3;
-        var dh = Math.floor(pw * ratio);
-
-        /* Theme-aware pillar fill */
-        var isLight = document.documentElement.getAttribute("data-theme") === "light";
-        var fill    = isLight ? "#dcdcdc" : "#050505";
-
-        /* Top pipe: solid column from ceiling → ornament band at gap edge */
-        ctx.fillStyle = fill;
-        ctx.fillRect(px, 0, pw, Math.max(0, tH - dh));
-        if (tH > 0) {
-          ctx.drawImage(obstacleImg, px, tH - dh, pw, dh);
-        }
-
-        /* Bottom pipe: ornament band at gap edge → solid column to floor */
-        ctx.drawImage(obstacleImg, px, bY, pw, dh);
-        ctx.fillStyle = fill;
-        ctx.fillRect(px, bY + dh, pw, Math.max(0, logicalH - bY - dh));
+        ctx.drawImage(obstacleImg, p.x, 0, state.pipeWidth, p.top);
+        ctx.drawImage(obstacleImg, p.x, p.bottom, state.pipeWidth, logicalH - p.bottom);
       }
 
       function drawHazard(h) {
@@ -1927,7 +1901,7 @@
           ctx.font = "bold 13px Courier New";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("ASSETS YÜKLENİYOR...", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
+          ctx.fillText("YÜKLENİYOR", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
           ctx.restore();
           return;
         }
