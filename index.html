@@ -1670,7 +1670,7 @@
       var state = {
         started: false, over: false, score: 0,
         bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
-        pipeGap: 170, pipeSpeed: 1.5, pipeWidth: 92,
+        pipeGap: 170, pipeSpeed: 1.5, pipeWidth: 54,
         lastScorePipeId: null
       };
 
@@ -1773,30 +1773,35 @@
         ctx.drawImage(ch, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
 
-      /* Draw engel.png at its native aspect ratio.
-         drawHeight = pipeWidth * (naturalHeight / naturalWidth).
-         If the result is shorter than the canvas, scale both dims up proportionally
-         so the image always covers the full pipe column. No clip tricks needed. */
+      /* Ornament Cap method — engel.png drawn ONLY at the tips at its true ratio.
+         A solid dark pillar fills the rest of each pipe column with zero distortion. */
       function drawPipeImg(p) {
-        var px = Math.floor(p.x);
-        var pw = state.pipeWidth;
+        var px  = Math.floor(p.x);
+        var pw  = state.pipeWidth;
+        var tH  = Math.floor(p.top);    // bottom edge of top pipe (gap top)
+        var bY  = Math.floor(p.bottom); // top edge of bottom pipe (gap bottom)
+
+        /* Native-ratio ornament height */
         var ratio = (obstacleImg.naturalWidth && obstacleImg.naturalHeight)
           ? obstacleImg.naturalHeight / obstacleImg.naturalWidth
           : 3;
-        var drawHeight = pw * ratio;
-        /* Scale up proportionally if image isn't tall enough to cover screen */
-        if (drawHeight < logicalH + 50) {
-          var scaleFactor = (logicalH + 50) / drawHeight;
-          drawHeight = logicalH + 50;
-          pw = Math.round(pw * scaleFactor);
-        }
-        var tH = Math.floor(p.top);    // bottom edge of top pipe (gap top)
-        var bY = Math.floor(p.bottom); // top edge of bottom pipe (gap bottom)
+        var dh = Math.floor(pw * ratio);
 
-        /* Top pipe — extends upward from gap top edge */
-        ctx.drawImage(obstacleImg, px, tH - drawHeight, pw, drawHeight);
-        /* Bottom pipe — extends downward from gap bottom edge */
-        ctx.drawImage(obstacleImg, px, bY, pw, drawHeight);
+        /* Theme-aware pillar fill */
+        var isLight = document.documentElement.getAttribute("data-theme") === "light";
+        var fill    = isLight ? "#dcdcdc" : "#050505";
+
+        /* Top pipe: solid column from ceiling → ornament band at gap edge */
+        ctx.fillStyle = fill;
+        ctx.fillRect(px, 0, pw, Math.max(0, tH - dh));
+        if (tH > 0) {
+          ctx.drawImage(obstacleImg, px, tH - dh, pw, dh);
+        }
+
+        /* Bottom pipe: ornament band at gap edge → solid column to floor */
+        ctx.drawImage(obstacleImg, px, bY, pw, dh);
+        ctx.fillStyle = fill;
+        ctx.fillRect(px, bY + dh, pw, Math.max(0, logicalH - bY - dh));
       }
 
       function drawHazard(h) {
