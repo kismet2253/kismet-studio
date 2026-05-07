@@ -50,7 +50,7 @@
 
     /* ── HIGH-FASHION BRUTALIST Light mode ── */
     [data-theme="light"] {
-      --bg:         #DFD8C8;
+      --bg:         #F5F4F0;
       --text:       #1a1a1a;
       --white:      #1a1a1a;
       --blue:       #666666;
@@ -125,6 +125,22 @@
     [data-theme="light"] .crt-noise {
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
       animation: filmGrain 0.9s infinite;
+    }
+
+    /* ── STATIC DARK MODE GRAIN — zero JS, zero animation, zero FPS cost ── */
+    .noise-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='staticGrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23staticGrain)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 256px 256px;
+    }
+
+    [data-theme="light"] .noise-overlay {
+      display: none;
     }
 
     /* ══════════════════════════════════════════════════
@@ -1052,6 +1068,7 @@
 
     @media (max-width: 768px) {
       .crt-noise    { display: none !important; }
+      .noise-overlay { display: none !important; }
 
       body          { padding-bottom: 150px; }
 
@@ -1145,6 +1162,9 @@
 
   <!-- CRT film grain — sits above everything except toast, never blocks clicks -->
   <div class="crt-noise" aria-hidden="true"></div>
+
+  <!-- Static dark mode grain — zero animation, zero FPS cost -->
+  <div class="noise-overlay" aria-hidden="true"></div>
 
   <!-- ── TOAST ── -->
   <div id="toast-container" role="status" aria-live="polite">
@@ -1670,7 +1690,7 @@
       var state = {
         started: false, over: false, score: 0,
         bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
-        pipeGap: 200, pipeSpeed: 1.5, pipeWidth: 54,
+        pipeGap: 200, pipeSpeed: 1.5, pipeWidth: 80,
         lastScorePipeId: null
       };
 
