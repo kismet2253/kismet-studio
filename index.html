@@ -1175,7 +1175,7 @@
 
       <div class="canvas-loader" id="canvasLoader">
         <div class="canvas-loader-spinner"></div>
-        <span class="canvas-loader-text">YÜKLENİYOR</span>
+        <span class="canvas-loader-text">YÜKLENİYOR . . .</span>
       </div>
 
       <canvas id="nazarCanvas" width="520" height="620" aria-label="Nazar uçuşu oyun tuvali"></canvas>
@@ -1670,7 +1670,7 @@
       var state = {
         started: false, over: false, score: 0,
         bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
-        pipeGap: 170, pipeSpeed: 1.5, pipeWidth: 54,
+        pipeGap: 200, pipeSpeed: 1.5, pipeWidth: 54,
         lastScorePipeId: null
       };
 
@@ -1774,7 +1774,13 @@
       }
 
       function drawPipeImg(p) {
-        ctx.drawImage(obstacleImg, p.x, 0, state.pipeWidth, p.top);
+        // Top pipe: flip 180° so its base hangs from the ceiling
+        ctx.save();
+        ctx.translate(p.x, p.top);
+        ctx.scale(1, -1);
+        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, p.top);
+        ctx.restore();
+        // Bottom pipe: unchanged, right-side up
         ctx.drawImage(obstacleImg, p.x, p.bottom, state.pipeWidth, logicalH - p.bottom);
       }
 
@@ -1844,7 +1850,7 @@
         player.vy += state.gravity;
         player.y  += player.vy;
 
-        var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
+        var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 220 === 0));
         if (pipeSpawnedThisFrame) spawn();
 
         /* Smooth sine-wave oscillation — score >= 10: each pipe drifts up/down
@@ -1901,7 +1907,7 @@
           ctx.font = "bold 13px Courier New";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("YÜKLENİYOR", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
+          ctx.fillText("YÜKLENİYOR . . .", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
           ctx.restore();
           return;
         }
