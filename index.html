@@ -48,15 +48,15 @@
       --brutal:      "Arial Black", "Helvetica Neue", Arial, sans-serif;
     }
 
-    /* ── VİZYON 1: "Vintage Washed Canvas" Light mode ── */
+    /* ── HIGH-FASHION BRUTALIST Light mode ── */
     [data-theme="light"] {
-      --bg:         #EADDCA;   /* Vintage Washed Canvas */
-      --text:       #1C1C1C;   /* Faded Ink */
-      --white:      #1C1C1C;
-      --blue:       #4A6FA5;
-      --surface:    #d6cfc4;
-      --surface2:   #cac3b8;
-      --overlay-bg: rgba(218,208,196,0.88);
+      --bg:         #f5f5f5;   /* Raw off-white / canvas */
+      --text:       #1a1a1a;   /* Ink black */
+      --white:      #1a1a1a;
+      --blue:       #666666;   /* Technical border */
+      --surface:    #e8e8e8;
+      --surface2:   #dcdcdc;
+      --overlay-bg: rgba(245,245,245,0.92);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -325,7 +325,7 @@
       margin-bottom: 26px;
     }
 
-    [data-theme="light"] .hero-sub { color: #3a5060; }
+    [data-theme="light"] .hero-sub { color: #444444; }
 
     /* ══════════════════════════════════════════════════
        GAME SHELL
@@ -360,7 +360,7 @@
     }
 
     [data-theme="light"] .score-box {
-      background: rgba(234,221,202,0.85);
+      background: rgba(245,245,245,0.90);
       color: var(--text);
     }
 
@@ -538,7 +538,7 @@
       margin-bottom: 24px;
     }
 
-    [data-theme="light"] .funnel > p { color: #3a4a56; }
+    [data-theme="light"] .funnel > p { color: #444444; }
 
     .funnel-form {
       display: flex;
@@ -607,7 +607,7 @@
       min-width: 200%;
     }
 
-    [data-theme="light"] .marquee-track { color: #2a3a46; }
+    [data-theme="light"] .marquee-track { color: #333333; }
 
     /* ══════════════════════════════════════════════════
        ARCHIVE GRID
@@ -784,7 +784,7 @@
       padding: 100px 20px 60px;
     }
 
-    [data-theme="light"] .site-footer { border-top-color: #c4c4c0; }
+    [data-theme="light"] .site-footer { border-top-color: #cccccc; }
 
     .site-footer .footer-logo {
       display: block;
@@ -1007,6 +1007,32 @@
 
       /* Liquid glass toggle: nudge on small screens */
       .liquid-glass-btn { top: 12px; right: 12px; width: 38px; height: 38px; }
+
+      /* GPU optimization: drop heavy backdrop-filter on mobile */
+      .liquid-glass-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      [data-theme="light"] .liquid-glass-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(28, 28, 28, 0.10);
+      }
+
+      /* Slot liquid blob — tightened duration for smoother FPS */
+      .slot-card:nth-child(1) {
+        animation: fadeInUp 0.65s 0.10s ease forwards, liquidBlob 5s 0s ease-in-out infinite;
+      }
+      .slot-card:nth-child(2) {
+        animation: fadeInUp 0.65s 0.25s ease forwards, liquidBlob 5.5s 0.7s ease-in-out infinite;
+      }
+      .slot-card:nth-child(3) {
+        animation: fadeInUp 0.65s 0.40s ease forwards, liquidBlob 6s 1.4s ease-in-out infinite;
+      }
+      .slot-card:nth-child(4) {
+        animation: fadeInUp 0.65s 0.55s ease forwards, liquidBlob 4.8s 2.1s ease-in-out infinite;
+      }
     }
   </style>
 </head>
@@ -1217,7 +1243,15 @@
     /* ══════════════════════════════════════════════════
        LIQUID GLASS TOGGLE — toggleTheme()
        Plays daktilo.mp3 at vol 0.2, stops after 1.5s.
+       Swaps all kismet_logo.png ↔ kismet_logo_light.png
     ══════════════════════════════════════════════════ */
+    function swapLogos(toLight) {
+      var logoImgs = document.querySelectorAll(".logo-wrap img, .footer-logo");
+      logoImgs.forEach(function (img) {
+        img.src = toLight ? "kismet_logo_light.png" : "kismet_logo.png";
+      });
+    }
+
     function toggleTheme() {
       var html    = document.documentElement;
       var isLight = html.getAttribute("data-theme") === "light";
@@ -1225,9 +1259,11 @@
       if (isLight) {
         html.removeAttribute("data-theme");
         try { localStorage.setItem("kismet-theme", "dark"); } catch (e) {}
+        swapLogos(false);
       } else {
         html.setAttribute("data-theme", "light");
         try { localStorage.setItem("kismet-theme", "light"); } catch (e) {}
+        swapLogos(true);
       }
 
       var daktilo = document.getElementById("daktiloAudio");
@@ -1238,6 +1274,13 @@
         setTimeout(function () { daktilo.pause(); daktilo.currentTime = 0; }, 1500);
       }
     }
+
+    /* Sync logos to whatever theme is already active on load */
+    (function () {
+      if (document.documentElement.getAttribute("data-theme") === "light") {
+        swapLogos(true);
+      }
+    })();
 
     /* Keyboard accessibility for liquid glass toggle */
     (function () {
@@ -1478,8 +1521,11 @@
         var s = logicalH / bgImg.naturalHeight;
         var w = bgImg.naturalWidth * s;
         if (w <= 0) return;
-        ctx.drawImage(bgImg, Math.floor(state.bgX), 0, Math.floor(w), logicalH);
-        ctx.drawImage(bgImg, Math.floor(state.bgX + w), 0, Math.floor(w), logicalH);
+        var bx = Math.floor(state.bgX);
+        var bw = Math.floor(w);
+        ctx.drawImage(bgImg, bx, 0, bw, logicalH);
+        /* 1-pixel overlap eliminates sub-pixel seam */
+        ctx.drawImage(bgImg, bx + bw - 1, 0, bw, logicalH);
         state.bgX -= state.bgSpeed;
         if (state.bgX <= -w) state.bgX = 0;
       }
@@ -1490,20 +1536,40 @@
       }
 
       function drawPipeImg(p) {
-        var tH = p.gapY - state.pipeGap / 2;
-        var bY = p.gapY + state.pipeGap / 2;
+        var tH = Math.floor(p.gapY - state.pipeGap / 2);
+        var bY = Math.floor(p.gapY + state.pipeGap / 2);
+        var px = Math.floor(p.x);
         ctx.save();
-        ctx.translate(Math.floor(p.x), Math.floor(tH));
+        ctx.translate(px, tH);
         ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, Math.floor(tH));
+        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, tH);
         ctx.restore();
-        ctx.drawImage(obstacleImg, Math.floor(p.x), Math.floor(bY), state.pipeWidth, Math.floor(logicalH - bY));
+        ctx.drawImage(obstacleImg, px, bY, state.pipeWidth, Math.floor(logicalH - bY));
       }
 
       function drawHazard(h) {
-        if (h.img && h.img.naturalWidth > 0) {
-          ctx.drawImage(h.img, Math.floor(h.x), Math.floor(h.y), h.w, h.h);
+        if (!h.img || h.img.naturalWidth === 0) return;
+        var fx = Math.floor(h.x);
+        var fy = Math.floor(h.y);
+        /* Flickering 2D chromatic aberration halo — red & cyan ghost trails */
+        var flicker = 0.35 + 0.3 * Math.abs(Math.sin(frames * 0.14 + fx * 0.04));
+        ctx.save();
+        ctx.globalAlpha = flicker;
+        if (ctx.filter !== undefined) {
+          /* Red ghost: shifted left */
+          ctx.filter = "sepia(1) saturate(12) hue-rotate(-30deg) brightness(1.6)";
+          ctx.drawImage(h.img, fx - 3, fy, h.w, h.h);
+          /* Cyan ghost: shifted right */
+          ctx.filter = "sepia(1) saturate(12) hue-rotate(165deg) brightness(1.6)";
+          ctx.drawImage(h.img, fx + 3, fy + 1, h.w, h.h);
+        } else {
+          /* Fallback: uncoloured ghosts for old engines */
+          ctx.drawImage(h.img, fx - 3, fy, h.w, h.h);
+          ctx.drawImage(h.img, fx + 3, fy + 1, h.w, h.h);
         }
+        ctx.restore();
+        /* Main image on top — crisp & floored */
+        ctx.drawImage(h.img, fx, fy, h.w, h.h);
       }
 
       /* ── Collision ── */
@@ -1616,7 +1682,7 @@
         if (!state.started && !state.over) {
           var isLight = document.documentElement.getAttribute("data-theme") === "light";
           ctx.save();
-          ctx.fillStyle = isLight ? "rgba(234,221,202,0.72)" : "rgba(5,5,5,0.60)";
+          ctx.fillStyle = isLight ? "rgba(245,245,245,0.72)" : "rgba(5,5,5,0.60)";
           ctx.fillRect(0, Math.floor(logicalH / 2 - 28), logicalW, 44);
           ctx.fillStyle = cssVar("--text");
           ctx.font = "13px Courier New";
@@ -1633,6 +1699,18 @@
 
       window.addEventListener("keydown", function (e) { if (e.code === "Space") { e.preventDefault(); flap(); } });
       canvas.addEventListener("click", flap);
+
+      /* MOBILE SCROLL LOCK — prevent page scroll only while game is running */
+      canvas.addEventListener("touchmove", function (e) {
+        if (state.started && !state.over) { e.preventDefault(); }
+      }, { passive: false });
+
+      /* Fast tap-to-flap on mobile (no 300ms delay) */
+      canvas.addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        flap();
+      }, { passive: false });
+
       retryBtn.addEventListener("click", reset);
 
       window.addEventListener("resize", function () { resize(); reset(); });
