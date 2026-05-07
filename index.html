@@ -1607,8 +1607,8 @@
        • Zero-gap: resize() uses Math.floor(parentElement.clientWidth)
        • Game starts ONLY when ALL 7 assets are loaded
        • Score > 5  → backgammon hazards + Star Sparkle Trail
-       • Score >= 10 → pipes begin slow sinusoidal oscillation (+/- 10px, Math.sin based)
-       • engel.png drawn at native aspect ratio via PIPE_IMG_H constant + clip rects
+       • Score >= 10 → smooth sine-wave oscillation (+/- 20px, per-pipe randomOffset)
+       • engel.png drawn at exact native aspect ratio — no clip tricks, no distortion
        • gameOver()  → Chromatic Aberration CSS filter flash (0.5s)
     ══════════════════════════════════════════════════ */
     (function () {
@@ -1730,12 +1730,17 @@
 
       function spawn() {
         var mg = 50, mn = mg + 120, mx = logicalH - mg - 120;
-        var baseGapY = Math.floor(Math.random() * (mx - mn + 1)) + mn;
+        var gapCenter  = Math.floor(Math.random() * (mx - mn + 1)) + mn;
+        var baseTop    = gapCenter - state.pipeGap / 2;
+        var baseBottom = gapCenter + state.pipeGap / 2;
         pipes.push({
-          id: ++pipeIdSeed,
-          x: logicalW + state.pipeWidth + 10,
-          baseGapY: baseGapY,
-          gapY: baseGapY
+          id:           ++pipeIdSeed,
+          x:            logicalW + state.pipeWidth + 10,
+          baseTop:      baseTop,
+          baseBottom:   baseBottom,
+          top:          baseTop,
+          bottom:       baseBottom,
+          randomOffset: Math.random() * Math.PI * 2
         });
       }
 
@@ -1768,40 +1773,30 @@
         ctx.drawImage(ch, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
 
-      /* Pipe height is always PIPE_IMG_H — a constant tall enough to cover any
-         screen. pipeDrawWidth is derived from engel.png's natural aspect ratio so
-         the texture is never squashed or stretched. Collision still uses state.pipeWidth.
-         A clip rect trims each pipe to its visible on-screen region before drawing. */
-      var PIPE_IMG_H = 900;
-
+      /* Draw engel.png at its native aspect ratio.
+         drawHeight = pipeWidth * (naturalHeight / naturalWidth).
+         If the result is shorter than the canvas, scale both dims up proportionally
+         so the image always covers the full pipe column. No clip tricks needed. */
       function drawPipeImg(p) {
-        var tH = Math.floor(p.gapY - state.pipeGap / 2); // bottom edge of top pipe
-        var bY = Math.floor(p.gapY + state.pipeGap / 2); // top edge of bottom pipe
         var px = Math.floor(p.x);
-        var pw = state.pipeWidth; // collision width — unchanged
+        var pw = state.pipeWidth;
+        var ratio = (obstacleImg.naturalWidth && obstacleImg.naturalHeight)
+          ? obstacleImg.naturalHeight / obstacleImg.naturalWidth
+          : 3;
+        var drawHeight = pw * ratio;
+        /* Scale up proportionally if image isn't tall enough to cover screen */
+        if (drawHeight < logicalH + 50) {
+          var scaleFactor = (logicalH + 50) / drawHeight;
+          drawHeight = logicalH + 50;
+          pw = Math.round(pw * scaleFactor);
+        }
+        var tH = Math.floor(p.top);    // bottom edge of top pipe (gap top)
+        var bY = Math.floor(p.bottom); // top edge of bottom pipe (gap bottom)
 
-        /* Aspect-ratio-preserving draw width: scale to PIPE_IMG_H height */
-        var pipeDrawWidth = (obstacleImg.naturalWidth && obstacleImg.naturalHeight)
-          ? Math.round(PIPE_IMG_H * obstacleImg.naturalWidth / obstacleImg.naturalHeight)
-          : pw;
-
-        /* Top pipe — drawn upward from tH, clipped to [0 .. tH] */
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(px, 0, pw, tH);
-        ctx.clip();
-        ctx.translate(px, tH);
-        ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, pipeDrawWidth, PIPE_IMG_H);
-        ctx.restore();
-
-        /* Bottom pipe — drawn downward from bY, clipped to [bY .. logicalH] */
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(px, bY, pw, logicalH - bY);
-        ctx.clip();
-        ctx.drawImage(obstacleImg, px, bY, pipeDrawWidth, PIPE_IMG_H);
-        ctx.restore();
+        /* Top pipe — extends upward from gap top edge */
+        ctx.drawImage(obstacleImg, px, tH - drawHeight, pw, drawHeight);
+        /* Bottom pipe — extends downward from gap bottom edge */
+        ctx.drawImage(obstacleImg, px, bY, pw, drawHeight);
       }
 
       function drawHazard(h) {
@@ -1828,8 +1823,8 @@
         if (player.y <= 0 || player.y + player.h >= logicalH) { gameOver(); return; }
         for (var i = 0; i < pipes.length; i++) {
           var p  = pipes[i];
-          var tH = p.gapY - state.pipeGap / 2;
-          var bY = p.gapY + state.pipeGap / 2;
+          var tH = p.top;    // bottom edge of top pipe
+          var bY = p.bottom; // top edge of bottom pipe
           if (hit(pb, { x: p.x, y: 0, w: state.pipeWidth, h: tH }) ||
               hit(pb, { x: p.x, y: bY, w: state.pipeWidth, h: logicalH - bY })) {
             gameOver(); return;
@@ -1873,16 +1868,18 @@
         var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
         if (pipeSpawnedThisFrame) spawn();
 
-        /* Slow sinusoidal oscillation — score >= 10: pipes gently drift up and down
-           by a fixed +/- 10px using Math.sin(frames / 60). Perfectly predictable,
-           never alters PIPE_IMG_H, so engel.png aspect ratio stays pristine. */
+        /* Smooth sine-wave oscillation — score >= 10: each pipe drifts up/down
+           +/- 20px independently via its own randomOffset. Gap size is constant. */
         for (var i = pipes.length - 1; i >= 0; i--) {
           pipes[i].x -= state.pipeSpeed;
 
           if (state.score >= 10) {
-            pipes[i].gapY = pipes[i].baseGapY + Math.sin(frames / 60) * 10;
+            var oscillation = Math.sin(frames * 0.03 + pipes[i].randomOffset) * 20;
+            pipes[i].top    = pipes[i].baseTop    + oscillation;
+            pipes[i].bottom = pipes[i].baseBottom + oscillation;
           } else {
-            pipes[i].gapY = pipes[i].baseGapY;
+            pipes[i].top    = pipes[i].baseTop;
+            pipes[i].bottom = pipes[i].baseBottom;
           }
 
           if (pipes[i].x + state.pipeWidth < -10) pipes.splice(i, 1);
