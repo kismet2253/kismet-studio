@@ -50,10 +50,10 @@
 
     /* ── HIGH-FASHION BRUTALIST Light mode ── */
     [data-theme="light"] {
-      --bg:         #f5f5f5;   /* Raw off-white / canvas */
-      --text:       #1a1a1a;   /* Ink black */
+      --bg:         #f5f5f5;
+      --text:       #1a1a1a;
       --white:      #1a1a1a;
-      --blue:       #666666;   /* Technical border */
+      --blue:       #666666;
       --surface:    #e8e8e8;
       --surface2:   #dcdcdc;
       --overlay-bg: rgba(245,245,245,0.92);
@@ -62,9 +62,13 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     ::selection { background: var(--blue); color: #fff; }
 
+    /* ZERO-GAP MOBILE FIX — explicit overflow + dimension lock */
     html, body {
       width: 100%;
       overflow-x: hidden;
+      position: relative;
+      margin: 0;
+      padding: 0;
       background: var(--bg);
       color: var(--text);
       font-family: var(--mono);
@@ -85,8 +89,7 @@
     a { color: inherit; text-decoration: none; }
 
     /* ══════════════════════════════════════════════════
-       CRT NOISE OVERLAY — Dark mode: digital flicker
-       VİZYON 1 — Light mode: old photocopy / film grain
+       CRT NOISE OVERLAY
     ══════════════════════════════════════════════════ */
     @keyframes crtFlicker {
       0%   { opacity: 0.004; }
@@ -94,7 +97,6 @@
       100% { opacity: 0.004; }
     }
 
-    /* VİZYON 1 — Finer, slower grain for light mode */
     @keyframes filmGrain {
       0%   { opacity: 0.025; }
       50%  { opacity: 0.065; }
@@ -113,14 +115,13 @@
       animation: crtFlicker 0.3s infinite;
     }
 
-    /* VİZYON 1 — Old photocopy / film grain texture for light mode */
     [data-theme="light"] .crt-noise {
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grainFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grainFilter)'/%3E%3C/svg%3E");
       animation: filmGrain 0.9s infinite;
     }
 
     /* ══════════════════════════════════════════════════
-       UNIVERSAL GAME OVER FX — works on all devices/browsers
+       GAME OVER FLASH — Chromatic Aberration effect
     ══════════════════════════════════════════════════ */
     @keyframes gameOverFlash {
       0%   { filter: invert(1); opacity: 0.92; }
@@ -153,6 +154,12 @@
       55%  { transform: translateX(280%) rotate(12deg); opacity: 0.7; }
       70%  { opacity: 0; }
       100% { transform: translateX(280%) rotate(12deg); opacity: 0; }
+    }
+
+    /* Organic floating animation for theme icons inside liquid glass */
+    @keyframes suzulme {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(-5px); }
     }
 
     .liquid-glass-btn {
@@ -206,6 +213,24 @@
       border-color: rgba(28, 28, 28, 0.28);
     }
 
+    /* ── Floating theme icons inside liquid glass btn ── */
+    .btn-icon {
+      position: absolute;
+      width: 60%;
+      top: 20%;
+      left: 20%;
+      pointer-events: none;
+      animation: suzulme 3s ease-in-out infinite;
+    }
+
+    /* Dark mode (default): show sun (gunes), hide star (yildiz) */
+    .icon-yildiz { display: none; }
+    .icon-gunes  { display: block; }
+
+    /* Light mode: show star (yildiz), hide sun (gunes) */
+    [data-theme="light"] .icon-yildiz { display: block; }
+    [data-theme="light"] .icon-gunes  { display: none; }
+
     /* ══════════════════════════════════════════════════
        KEYFRAMES
     ══════════════════════════════════════════════════ */
@@ -253,7 +278,6 @@
       50%       { transform: translateY(-5px); }
     }
 
-    /* Culture Corner levitation */
     @keyframes rugFloat {
       0%, 100% { transform: translateY(0px)  translateZ(0); }
       50%       { transform: translateY(-3px) translateZ(0); }
@@ -269,7 +293,6 @@
       50%       { transform: rotate(2deg)  translateZ(0); }
     }
 
-    /* VİZYON 3 — Liquid morphing blob for mobile slot cards */
     @keyframes liquidBlob {
       0%   { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
       25%  { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
@@ -347,23 +370,28 @@
     [data-theme="light"] .hero-sub { color: #444444; }
 
     /* ══════════════════════════════════════════════════
-       GAME SHELL
+       GAME SHELL — ZERO-GAP fix
     ══════════════════════════════════════════════════ */
     .game-shell {
       border: 1px solid var(--white);
       position: relative;
       width: min(520px, 92vw);
+      max-width: 100vw;
+      display: block;
       margin: 0 auto 62px;
       background: var(--bg);
       overflow: hidden;
       transition: background-color 0.3s ease;
     }
 
+    /* touch-action: none prevents browser-level panning that causes the white gap */
     canvas {
       display: block;
-      max-width: 100%;
+      width: 100% !important;
+      max-width: 100vw;
       background: var(--bg);
       transition: background-color 0.3s ease;
+      touch-action: none;
     }
 
     .score-box {
@@ -672,10 +700,6 @@
 
     .right-stack { display: grid; grid-template-rows: 1fr 1fr; gap: 14px; }
 
-    /* ── LOOKBOOK CARD ──
-       overflow: visible is mandatory — hidden would flatten
-       the preserve-3d context on child .lookbook-mascot elements.
-    ── */
     .lookbook-card {
       border: 1px solid var(--white);
       padding: 20px;
@@ -824,7 +848,7 @@
     }
 
     /* ══════════════════════════════════════════════════
-       MASTER AUDIO DJ HUB — flat pads, no 3D structure
+       MASTER AUDIO DJ HUB
     ══════════════════════════════════════════════════ */
     #dj-hub {
       position: fixed;
@@ -835,19 +859,6 @@
       flex-direction: column;
       gap: 6px;
       align-items: flex-start;
-    }
-
-    .character-select-title {
-      color: var(--text);
-      font-family: "Courier New", Courier, monospace;
-      font-weight: bold;
-      letter-spacing: 2px;
-      font-size: 12px;
-      margin-bottom: 4px;
-      text-align: left;
-      width: 100%;
-      text-transform: uppercase;
-      transition: color 0.3s ease;
     }
 
     .dj-pads-row {
@@ -987,7 +998,6 @@
       .slot-card    { min-height: 140px; }
       .community-inner { flex-direction: column; }
 
-      /* VİZYON 3 — Scale culture corner ~30% to prevent blocking UI */
       .culture-corner {
         width: 130px; height: 105px; right: 8px; bottom: 8px; opacity: 0.88;
         transform: scale(0.62);
@@ -997,7 +1007,6 @@
       .tesbih  { width: 68px; right: 50px; bottom: 6px; }
       .cay     { width: 48px; right: 24px; bottom: 18px; }
 
-      /* VİZYON 3 — Shrink DJ hub ~30% on mobile */
       #dj-hub {
         bottom: 8px; left: 8px; gap: 4px;
         transform: scale(0.7);
@@ -1005,63 +1014,16 @@
       }
       .dj-pads-row { gap: 10px; }
       .dj-pad { width: 50px; height: 50px; }
-      .character-select-title { font-size: 10px; letter-spacing: 1.5px; }
 
       .lookbook-mascot { width: 78px; height: 78px; }
 
       .site-footer { padding: 60px 16px 40px; }
       .site-footer .footer-logo { height: 70px; }
 
-      /* VİZYON 3 — Liquid morphing blob animation for mobile slot cards */
       .slot-card {
         overflow: hidden;
         animation: fadeInUp 0.65s ease forwards, liquidBlob 6s ease-in-out infinite;
       }
-      .slot-card:nth-child(1) {
-        animation: fadeInUp 0.65s 0.10s ease forwards, liquidBlob 6s 0s ease-in-out infinite;
-      }
-      .slot-card:nth-child(2) {
-        animation: fadeInUp 0.65s 0.25s ease forwards, liquidBlob 6.5s 0.8s ease-in-out infinite;
-      }
-      .slot-card:nth-child(3) {
-        animation: fadeInUp 0.65s 0.40s ease forwards, liquidBlob 7s 1.6s ease-in-out infinite;
-      }
-      .slot-card:nth-child(4) {
-        animation: fadeInUp 0.65s 0.55s ease forwards, liquidBlob 5.5s 2.4s ease-in-out infinite;
-      }
-      .slot-card:hover {
-        animation: slotPulse 1.4s ease-in-out infinite;
-        border-radius: 0;
-      }
-
-      /* VİZYON 3 — Dark mode: liquid neon border on .slot-card */
-      .slot-card {
-        border: 1px solid rgba(30, 100, 255, 0.55);
-        box-shadow: 0 0 14px rgba(0, 80, 255, 0.22), inset 0 0 8px rgba(0, 60, 255, 0.06);
-      }
-
-      /* VİZYON 3 — Light mode: Rorschach faded ink border on .slot-card */
-      [data-theme="light"] .slot-card {
-        border: 1px solid rgba(28, 28, 28, 0.32);
-        box-shadow: none;
-      }
-
-      /* Liquid glass toggle: nudge on small screens */
-      .liquid-glass-btn { top: 12px; right: 12px; width: 38px; height: 38px; }
-
-      /* GPU optimization: drop heavy backdrop-filter on mobile */
-      .liquid-glass-btn {
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        background: rgba(255, 255, 255, 0.12);
-      }
-      [data-theme="light"] .liquid-glass-btn {
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        background: rgba(28, 28, 28, 0.10);
-      }
-
-      /* Slot liquid blob — tightened duration for smoother FPS */
       .slot-card:nth-child(1) {
         animation: fadeInUp 0.65s 0.10s ease forwards, liquidBlob 5s 0s ease-in-out infinite;
       }
@@ -1074,13 +1036,43 @@
       .slot-card:nth-child(4) {
         animation: fadeInUp 0.65s 0.55s ease forwards, liquidBlob 4.8s 2.1s ease-in-out infinite;
       }
+      .slot-card:hover {
+        animation: slotPulse 1.4s ease-in-out infinite;
+        border-radius: 0;
+      }
+
+      .slot-card {
+        border: 1px solid rgba(30, 100, 255, 0.55);
+        box-shadow: 0 0 14px rgba(0, 80, 255, 0.22), inset 0 0 8px rgba(0, 60, 255, 0.06);
+      }
+
+      [data-theme="light"] .slot-card {
+        border: 1px solid rgba(28, 28, 28, 0.32);
+        box-shadow: none;
+      }
+
+      .liquid-glass-btn { top: 12px; right: 12px; width: 38px; height: 38px; }
+
+      .liquid-glass-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      [data-theme="light"] .liquid-glass-btn {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        background: rgba(28, 28, 28, 0.10);
+      }
     }
   </style>
 </head>
 <body>
 
-  <!-- LIQUID GLASS THEME TOGGLE -->
-  <div id="themeToggle" class="liquid-glass-btn" onclick="toggleTheme()" aria-label="Tema geçişi: açık / koyu mod" role="button" tabindex="0"></div>
+  <!-- LIQUID GLASS THEME TOGGLE — icons float organically inside -->
+  <div id="themeToggle" class="liquid-glass-btn" onclick="toggleTheme()" aria-label="Tema geçişi: açık / koyu mod" role="button" tabindex="0">
+    <img src="yildiz.png" class="btn-icon icon-yildiz" alt="" aria-hidden="true" />
+    <img src="gunes.png"  class="btn-icon icon-gunes"  alt="" aria-hidden="true" />
+  </div>
 
   <!-- CRT film grain — sits above everything except toast, never blocks clicks -->
   <div class="crt-noise" aria-hidden="true"></div>
@@ -1176,7 +1168,7 @@
             <span class="lookbook-tag">LOOKBOOK</span>
             <div class="lookbook-stage">
 
-              <!-- Plush 1: Nazar — front: nazar_front.png | back: nazar_back.png -->
+              <!-- Plush 1: Nazar -->
               <div class="lookbook-mascot" role="button" tabindex="0" aria-label="Nazar maskotu — tıkla ve çevir">
                 <div class="mascot-face front">
                   <img src="nazar_front.png" alt="Nazar ön" />
@@ -1186,7 +1178,7 @@
                 </div>
               </div>
 
-              <!-- Plush 2: Boncuk — front: boncuk_front.png | back: boncuk_back.png -->
+              <!-- Plush 2: Boncuk -->
               <div class="lookbook-mascot" role="button" tabindex="0" aria-label="Boncuk maskotu — tıkla ve çevir">
                 <div class="mascot-face front">
                   <img src="boncuk_front.png" alt="Boncuk ön" />
@@ -1231,8 +1223,6 @@
        Pad II → boncuk_front.png → beat_2.mp3
   ══════════════════════════════════════════════════ -->
   <div id="dj-hub" aria-label="DJ Hub müzik istasyonu">
-
-    <div class="character-select-title">KARAKTERİNİ SEÇ</div>
 
     <div class="dj-pads-row">
 
@@ -1289,6 +1279,7 @@
     /* ══════════════════════════════════════════════════
        LIQUID GLASS TOGGLE — toggleTheme()
        Swaps all kismet_logo.png ↔ kismet_logo_light.png
+       for both header (.logo-wrap img) and footer (.footer-logo)
     ══════════════════════════════════════════════════ */
     function swapLogos(toLight) {
       var logoImgs = document.querySelectorAll(".logo-wrap img, .footer-logo");
@@ -1331,8 +1322,6 @@
 
     /* ══════════════════════════════════════════════════
        MASTER AUDIO DJ HUB
-       Flat-image pads — one image each, no 3D structure.
-       .active-dj → spin360 3s linear infinite + glow
     ══════════════════════════════════════════════════ */
     (function () {
       var beat1     = document.getElementById("beat1");
@@ -1411,14 +1400,12 @@
     /* ══════════════════════════════════════════════════
        KAOS MOTORU 2.0 (Game Engine)
        • DPR HD canvas — crisp on retina
-       • Game starts ONLY when ALL 7 assets are loaded:
-         imgBg, imgNazar, imgBoncuk, imgPipe,
-         tavlaZariImg, tavlaTasiSiyahImg, tavlaTasiBeyazImg
-       • Loader: black screen + "ASSETS YÜKLENİYOR..." — NO EMOJIS
-       • Pipes spawn at frame 60, then every 200 frames (fair difficulty)
-       • Score > 5  → 3 backgammon hazards fly right-to-left w/ sparkle trail
-       • Score >= 20 → pipes oscillate via Math.sin()
-       • gameOver()  → universal CSS filter flash (0.5s) — mobile + desktop
+       • Zero-gap: resize() uses Math.floor(parentElement.clientWidth)
+       • Game starts ONLY when ALL 7 assets are loaded
+       • Score > 5  → backgammon hazards + Star Sparkle Trail
+       • Score >= 10 → pipes begin slow vertical oscillation (vertSpeed 0.5)
+       • Score >= 20 → full vertical oscillation (vertSpeed 1.2)
+       • gameOver()  → Chromatic Aberration CSS filter flash (0.5s)
     ══════════════════════════════════════════════════ */
     (function () {
       var canvas  = document.getElementById("nazarCanvas");
@@ -1437,11 +1424,11 @@
       }
 
       /* ── Asset images ── */
-      var bgImg            = new Image();
-      var playerImg        = new Image();
-      var obstacleImg      = new Image();
-      var boncukImg        = new Image();
-      var tavlaZariImg     = new Image();
+      var bgImg             = new Image();
+      var playerImg         = new Image();
+      var obstacleImg       = new Image();
+      var boncukImg         = new Image();
+      var tavlaZariImg      = new Image();
       var tavlaTasiSiyahImg = new Image();
       var tavlaTasiBeyazImg = new Image();
 
@@ -1453,10 +1440,8 @@
       tavlaTasiSiyahImg.src = "tavla_tasi_siyah.png";
       tavlaTasiBeyazImg.src = "tavla_tasi_beyaz.png";
 
-      /* Backgammon hazard image pool */
       var hazardPool = [tavlaZariImg, tavlaTasiSiyahImg, tavlaTasiBeyazImg];
 
-      /* Shared game-character state */
       var activeGameCharacter = null;
 
       window.KISMET_setChar = function (who) {
@@ -1467,7 +1452,6 @@
 
       var assetsLoaded = false;
 
-      /* ── DPR / logical dimensions ── */
       var dpr = window.devicePixelRatio || 1;
       var logicalW = 520, logicalH = 620;
 
@@ -1479,7 +1463,6 @@
         });
       }
 
-      /* ── Balanced physics ── */
       var state = {
         started: false, over: false, score: 0,
         bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
@@ -1491,22 +1474,21 @@
       var player = { x: 112, y: 0, w: 42, h: 42, vy: 0 };
       var pipes = [], pipeIdSeed = 0, lastTime = 0;
 
-      /* ── Hazard state ── */
       var hazards = [], hazardSpawnTimer = 0, hazardNextSpawn = 95;
-
-      /* ── Sparkle particle trail ── */
       var particles = [];
 
-      /* ── DPR resize — uses parentElement.clientWidth to prevent mobile overflow ── */
+      /* ── ZERO-GAP resize: Math.floor on all parent dimensions ── */
       function resize() {
         dpr = window.devicePixelRatio || 1;
         var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         var isMobile = vw <= 768;
-        /* Use parent container width so canvas never exceeds its container */
-        var parentW = canvas.parentElement ? canvas.parentElement.clientWidth : vw;
-        var maxW    = isMobile ? 360 : 520;
-        logicalW    = Math.min(parentW, maxW);
-        logicalH    = isMobile ? 520 : 620;
+
+        var parentW = canvas.parentElement
+          ? Math.floor(canvas.parentElement.clientWidth)
+          : Math.floor(vw);
+        var maxW = isMobile ? 360 : 520;
+        logicalW = Math.floor(Math.min(parentW, maxW));
+        logicalH = isMobile ? 520 : 620;
 
         canvas.width  = Math.floor(logicalW * dpr);
         canvas.height = Math.floor(logicalH * dpr);
@@ -1517,7 +1499,7 @@
         ctx.scale(dpr, dpr);
 
         player.x = isMobile ? 82 : 112;
-        player.y = logicalH * 0.45;
+        player.y = Math.floor(logicalH * 0.45);
       }
 
       function reset() {
@@ -1531,7 +1513,7 @@
         particles.length = 0;
         hazardSpawnTimer = 0;
         hazardNextSpawn = 95;
-        player.y = logicalH * 0.45;
+        player.y = Math.floor(logicalH * 0.45);
         player.vy = 0;
         scoreEl.textContent = "0";
         overlay.style.display = "none";
@@ -1548,28 +1530,25 @@
         });
       }
 
-      /* Pick randomly from the 3 backgammon hazard images */
       function spawnHazard() {
         var img = hazardPool[Math.floor(Math.random() * hazardPool.length)];
         hazards.push({
           x: logicalW + 30,
-          y: 20 + Math.random() * (logicalH - 70),
+          y: Math.floor(20 + Math.random() * (logicalH - 70)),
           w: 25, h: 25,
           img: img,
           speed: 4.5 + Math.random() * 2.5
         });
       }
 
-      /* ── Draw helpers (no emoji, image-only) ── */
       function drawBgImg() {
         if (!bgImg.naturalWidth) return;
-        var s = logicalH / bgImg.naturalHeight;
-        var w = bgImg.naturalWidth * s;
+        var s  = logicalH / bgImg.naturalHeight;
+        var w  = bgImg.naturalWidth * s;
         if (w <= 0) return;
         var bx = Math.floor(state.bgX);
         var bw = Math.floor(w);
         ctx.drawImage(bgImg, bx, 0, bw, logicalH);
-        /* 1-pixel overlap eliminates sub-pixel seam */
         ctx.drawImage(bgImg, bx + bw - 1, 0, bw, logicalH);
         state.bgX -= state.bgSpeed;
         if (state.bgX <= -w) state.bgX = 0;
@@ -1594,11 +1573,10 @@
 
       function drawHazard(h) {
         if (!h.img || h.img.naturalWidth === 0) return;
-        /* Lightweight: draw main image only — sparkle trail provides visual feedback */
         ctx.drawImage(h.img, Math.floor(h.x), Math.floor(h.y), h.w, h.h);
       }
 
-      /* ── Sparkle particle trail renderer ── */
+      /* ── Star Sparkle Trail on hazards ── */
       function drawParticles() {
         for (var k = 0; k < particles.length; k++) {
           var p = particles[k];
@@ -1608,7 +1586,6 @@
         }
       }
 
-      /* ── Collision ── */
       function hit(a, b) {
         return !(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h);
       }
@@ -1617,7 +1594,7 @@
         var pb = { x: player.x + 3, y: player.y + 3, w: player.w - 6, h: player.h - 6 };
         if (player.y <= 0 || player.y + player.h >= logicalH) { gameOver(); return; }
         for (var i = 0; i < pipes.length; i++) {
-          var p = pipes[i];
+          var p  = pipes[i];
           var tH = p.gapY - state.pipeGap / 2;
           var bY = p.gapY + state.pipeGap / 2;
           if (hit(pb, { x: p.x, y: 0, w: state.pipeWidth, h: tH }) ||
@@ -1635,7 +1612,7 @@
         }
       }
 
-      /* ── Universal Game Over FX — lightweight filter flash, works on all devices ── */
+      /* ── Chromatic Aberration Game Over FX ── */
       function triggerGameOverFX() {
         var gameContainer = canvas.closest(".game-shell") || canvas;
         gameContainer.classList.add("game-over-flash");
@@ -1651,7 +1628,6 @@
         finalScoreDisplay.textContent = s;
         hiddenScoreInput.value = s;
         overlay.style.display = "flex";
-
         triggerGameOverFX();
       }
 
@@ -1661,23 +1637,27 @@
         player.vy += state.gravity;
         player.y  += player.vy;
 
-        /* First pipe at frame 60, then every 200 frames */
         var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
         if (pipeSpawnedThisFrame) spawn();
 
-        /* Update pipes + sinusoidal movement at score >= 20 */
+        /* Dynamic vertical speed scaling:
+           score >= 10: slow oscillation (vertSpeed 0.5)
+           score >= 20: full oscillation (vertSpeed 1.2) */
+        var vertSpeed = 0;
+        if (state.score >= 20)      vertSpeed = 1.2;
+        else if (state.score >= 10) vertSpeed = 0.5;
+
         for (var i = pipes.length - 1; i >= 0; i--) {
           pipes[i].x -= state.pipeSpeed;
-          if (state.score >= 20) {
+          if (vertSpeed > 0) {
             pipes[i].gapY = pipes[i].baseGapY +
-              Math.sin(frames * 0.025 + pipes[i].id * 0.9) * 45;
+              Math.sin(frames * 0.025 + pipes[i].id * 0.9) * 45 * vertSpeed;
           } else {
             pipes[i].gapY = pipes[i].baseGapY;
           }
           if (pipes[i].x + state.pipeWidth < -10) pipes.splice(i, 1);
         }
 
-        /* Hazard spawning after score > 5 — never on pipe-spawn frames */
         if (state.score > 5 && !pipeSpawnedThisFrame) {
           hazardSpawnTimer++;
           if (hazardSpawnTimer >= hazardNextSpawn) {
@@ -1687,10 +1667,8 @@
           }
         }
 
-        /* Move hazards right-to-left + emit sparkle particles */
         for (var j = hazards.length - 1; j >= 0; j--) {
           hazards[j].x -= hazards[j].speed;
-          /* Emit 2 sparkle particles per frame per hazard */
           particles.push({
             x: hazards[j].x + hazards[j].w * 0.5 + (Math.random() - 0.5) * hazards[j].w,
             y: hazards[j].y + hazards[j].h * 0.5 + (Math.random() - 0.5) * hazards[j].h,
@@ -1700,7 +1678,6 @@
           if (hazards[j].x + hazards[j].w < 0) hazards.splice(j, 1);
         }
 
-        /* Decay sparkle particles */
         for (var k = particles.length - 1; k >= 0; k--) {
           particles[k].alpha -= 0.05;
           if (particles[k].alpha <= 0) particles.splice(k, 1);
@@ -1718,7 +1695,7 @@
           ctx.font = "bold 13px Courier New";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("ASSETS YÜKLENİYOR...", logicalW / 2, logicalH / 2);
+          ctx.fillText("ASSETS YÜKLENİYOR...", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
           ctx.restore();
           return;
         }
@@ -1739,7 +1716,7 @@
           ctx.font = "13px Courier New";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
-          ctx.fillText("BAŞLAMAK İÇİN TIKLA VEYA BOŞLUK TUŞUNA BAS", logicalW / 2, logicalH / 2);
+          ctx.fillText("BAŞLAMAK İÇİN TIKLA VEYA BOŞLUK TUŞUNA BAS", Math.floor(logicalW / 2), Math.floor(logicalH / 2));
           ctx.restore();
         }
       }
@@ -1751,12 +1728,10 @@
       window.addEventListener("keydown", function (e) { if (e.code === "Space") { e.preventDefault(); flap(); } });
       canvas.addEventListener("click", flap);
 
-      /* MOBILE SCROLL LOCK — prevent page scroll only while game is running */
       canvas.addEventListener("touchmove", function (e) {
         if (state.started && !state.over) { e.preventDefault(); }
       }, { passive: false });
 
-      /* Fast tap-to-flap on mobile (no 300ms delay) */
       canvas.addEventListener("touchstart", function (e) {
         e.preventDefault();
         flap();
@@ -1767,10 +1742,8 @@
       window.addEventListener("resize", function () { resize(); reset(); });
 
       resize();
-      /* rAF loop starts immediately so the loading screen canvas is live */
       requestAnimationFrame(loop);
 
-      /* All 7 assets must resolve before game initialises */
       Promise.all([
         imgPromise(bgImg),
         imgPromise(playerImg),
