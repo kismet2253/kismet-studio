@@ -62,9 +62,18 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     ::selection { background: var(--blue); color: #fff; }
 
-    /* ZERO-GAP MOBILE FIX — explicit overflow + dimension lock */
-    html, body {
+    /* html: no overflow restriction — desktop mouse-wheel scroll must work freely */
+    html {
       width: 100%;
+      background: var(--bg);
+      scroll-behavior: smooth;
+      overscroll-behavior: none;
+    }
+
+    /* body: only hide horizontal overflow (prevents horizontal scroll bars) */
+    body {
+      width: 100%;
+      min-height: 100vh;
       overflow-x: hidden;
       position: relative;
       margin: 0;
@@ -72,12 +81,9 @@
       background: var(--bg);
       color: var(--text);
       font-family: var(--mono);
-      scroll-behavior: smooth;
       cursor: crosshair !important;
       transition: background-color 0.3s ease, color 0.3s ease;
-      overscroll-behavior: none;
     }
-    body { min-height: 100vh; }
 
     a, button, input, textarea, select,
     [role="button"], [tabindex],
@@ -631,6 +637,68 @@
     [data-theme="light"] .kvkk-note { color: #6a7a86; }
 
     /* ══════════════════════════════════════════════════
+       AJAX FORM STATES — funnel + game-over
+    ══════════════════════════════════════════════════ */
+    @keyframes formSuccessPulse {
+      0%   { box-shadow: 0 0 0   rgba(91,124,153,0); }
+      50%  { box-shadow: 0 0 22px rgba(91,124,153,0.45); }
+      100% { box-shadow: 0 0 8px  rgba(91,124,153,0.18); }
+    }
+
+    /* Funnel form success */
+    .funnel-form.is-success input[type="email"] {
+      opacity: 0.38;
+      pointer-events: none;
+      border-color: #2a3d4a;
+    }
+    .funnel-form.is-success button,
+    .funnel-form.is-success button:hover {
+      border-color: var(--blue);
+      background: transparent;
+      color: var(--blue);
+      letter-spacing: 2px;
+      pointer-events: none;
+      animation: formSuccessPulse 1.8s ease forwards;
+    }
+
+    /* Funnel form error */
+    .funnel-form.is-error button {
+      border-color: #7a3030;
+      color: #c05050;
+    }
+    .funnel-form.is-error button:hover {
+      background: #7a3030;
+      border-color: #7a3030;
+      color: #fff;
+    }
+
+    /* Game-over form success */
+    .go-form.is-success .go-email {
+      opacity: 0.38;
+      pointer-events: none;
+      border-color: #1e2e38;
+    }
+    .go-form.is-success .go-submit,
+    .go-form.is-success .go-submit:hover {
+      border-color: var(--blue);
+      background: transparent;
+      color: var(--blue);
+      pointer-events: none;
+      animation: formSuccessPulse 1.8s ease forwards;
+    }
+
+    /* Game-over form error */
+    .go-form.is-error .go-submit {
+      border-color: #7a3030;
+      color: #c05050;
+    }
+    .go-form.is-error .go-submit:hover {
+      background: #7a3030;
+      border-color: #7a3030;
+      color: #fff;
+    }
+
+    /* ══════════════════════════════════════════════════
        MARQUEE
     ══════════════════════════════════════════════════ */
     .marquee-wrap {
@@ -1120,10 +1188,10 @@
           </div>
           <div class="go-divider"></div>
           <p class="go-sub">Liderlik tablosuna gir ve drop listesinde yerini al.</p>
-          <form class="go-form" action="https://formspree.io/f/xjglrvlj" method="POST">
+          <form id="goForm" class="go-form" action="https://formspree.io/f/xjglrvlj" method="POST">
             <input type="hidden" name="Skor" id="hiddenScoreInput" value="0" />
-            <input type="email" name="email" class="go-email" placeholder="e-mail adresin" required aria-label="E-mail adresin" />
-            <button type="submit" class="go-submit">SKORU KAYDET</button>
+            <input id="goEmail" type="email" name="email" class="go-email" placeholder="e-mail adresin" required aria-label="E-mail adresin" />
+            <button id="goSubmitBtn" type="submit" class="go-submit">SKORU KAYDET</button>
           </form>
           <button class="go-replay" id="retryBtn" aria-label="Tekrar oyna">— TEKRAR OYNA —</button>
         </div>
@@ -1136,9 +1204,9 @@
     <section class="funnel" aria-label="Erken erişim kayıt alanı">
       <h2>ERKEN ERİŞİM İÇİN KAYIT OL</h2>
       <p>drop 01 çok yakında. sadece listeye özel.</p>
-      <form class="funnel-form" action="https://formspree.io/f/xjglrvlj" method="POST">
-        <input type="email" name="email" required placeholder="E-mail adresin" aria-label="E-mail adresin" />
-        <button type="submit">BANA HABER VER</button>
+      <form id="funnelForm" class="funnel-form" action="https://formspree.io/f/xjglrvlj" method="POST">
+        <input id="funnelEmail" type="email" name="email" required placeholder="E-mail adresin" aria-label="E-mail adresin" />
+        <button id="funnelBtn" type="submit">BANA HABER VER</button>
       </form>
       <p class="kvkk-note">kayıt olarak gizlilik ve iletişim şartlarını kabul etmiş olursunuz.</p>
     </section>
@@ -1275,6 +1343,79 @@
           if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showToast(); }
         });
       });
+    })();
+
+    /* ══════════════════════════════════════════════════
+       PREMIUM AJAX FORM SUBMISSION — no redirects
+       Both forms (funnel + game-over) post to Formspree
+       via fetch(). The page never navigates away.
+    ══════════════════════════════════════════════════ */
+    (function () {
+      /* Shared submit handler factory.
+         formEl       — the <form> element
+         emailInputEl — the email <input> to disable on success
+         btnEl        — the submit <button> to update
+         successLabel — brutalist success copy
+      */
+      function bindAjaxForm(formEl, emailInputEl, btnEl, successLabel) {
+        if (!formEl) return;
+
+        formEl.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          /* Guard: do nothing if already submitted successfully */
+          if (formEl.classList.contains("is-success")) return;
+
+          /* Clear any previous error state */
+          formEl.classList.remove("is-error");
+          btnEl.textContent = "GÖNDERİLİYOR...";
+          btnEl.disabled = true;
+
+          var data = new FormData(formEl);
+
+          fetch(formEl.action, {
+            method: "POST",
+            body: data,
+            headers: { "Accept": "application/json" }
+          })
+          .then(function (res) {
+            if (res.ok) {
+              /* ── SUCCESS ── */
+              formEl.classList.add("is-success");
+              emailInputEl.disabled = true;
+              btnEl.textContent = successLabel;
+              btnEl.disabled = false; /* CSS pointer-events:none handles click-guard */
+            } else {
+              /* Formspree returned a non-2xx status (rate-limit, etc.) */
+              return res.json().then(function (body) {
+                throw new Error(body && body.error ? body.error : "server error");
+              });
+            }
+          })
+          .catch(function () {
+            /* ── ERROR ── */
+            formEl.classList.add("is-error");
+            btnEl.textContent = "[ HATA — TEKRAR DENE ]";
+            btnEl.disabled = false;
+          });
+        });
+      }
+
+      /* Funnel form */
+      bindAjaxForm(
+        document.getElementById("funnelForm"),
+        document.getElementById("funnelEmail"),
+        document.getElementById("funnelBtn"),
+        "[ LİSTEYE ALINDIN ]"
+      );
+
+      /* Game-over score form */
+      bindAjaxForm(
+        document.getElementById("goForm"),
+        document.getElementById("goEmail"),
+        document.getElementById("goSubmitBtn"),
+        "[ SKORU KAYDEDİLDİ ]"
+      );
     })();
 
     /* ══════════════════════════════════════════════════
@@ -1594,7 +1735,9 @@
           id: ++pipeIdSeed,
           x: logicalW + state.pipeWidth + 10,
           baseGapY: baseGapY,
-          gapY: baseGapY
+          gapY: baseGapY,
+          targetY: baseGapY,   // jetpack destination
+          jetpackTimer: 0      // frames until next erratic thrust
         });
       }
 
@@ -1727,21 +1870,35 @@
         var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
         if (pipeSpawnedThisFrame) spawn();
 
-        /* Dynamic vertical speed scaling:
-           score >= 10: slow oscillation (vertSpeed 0.5)
-           score >= 20: full oscillation (vertSpeed 1.2) */
-        var vertSpeed = 0;
-        if (state.score >= 20)      vertSpeed = 1.2;
-        else if (state.score >= 10) vertSpeed = 0.5;
+        /* JETPACK movement — score >= 10: erratic concrete-block-with-malfunctioning-jetpack.
+           gapY (the gap centre) is interpolated toward a randomly chosen targetY.
+           The pipe IMAGE height (PIPE_IMG_H) is NEVER changed — only gapY shifts,
+           so engel.png is always drawn at its true aspect ratio via the clip rects. */
+        var jetpackActive    = state.score >= 10;
+        var jetpackIntensity = state.score >= 20 ? 1.0 : 0.45;
 
         for (var i = pipes.length - 1; i >= 0; i--) {
           pipes[i].x -= state.pipeSpeed;
-          if (vertSpeed > 0) {
-            pipes[i].gapY = pipes[i].baseGapY +
-              Math.sin(frames * 0.025 + pipes[i].id * 0.9) * 45 * vertSpeed;
+
+          if (jetpackActive) {
+            pipes[i].jetpackTimer--;
+            if (pipes[i].jetpackTimer <= 0) {
+              /* Pick a wildly different target — erratic, unpredictable burst */
+              var jEdge = 115 + state.pipeGap / 2;
+              pipes[i].targetY = jEdge + Math.random() * (logicalH - jEdge * 2);
+              /* Short timer = sudden jerk, long timer = slow drift — malfunctioning feel */
+              pipes[i].jetpackTimer = 28 + Math.floor(Math.random() * 95);
+            }
+            /* Heavy lerp: pipe lurches toward target like a concrete block */
+            pipes[i].gapY += (pipes[i].targetY - pipes[i].gapY) * (0.038 * jetpackIntensity);
+            /* Hard clamp so gap never clips ceiling/floor */
+            var clampEdge = 105;
+            if (pipes[i].gapY < clampEdge)              pipes[i].gapY = clampEdge;
+            if (pipes[i].gapY > logicalH - clampEdge)   pipes[i].gapY = logicalH - clampEdge;
           } else {
             pipes[i].gapY = pipes[i].baseGapY;
           }
+
           if (pipes[i].x + state.pipeWidth < -10) pipes.splice(i, 1);
         }
 
@@ -1826,10 +1983,15 @@
 
       retryBtn.addEventListener("click", reset);
 
+      /* Track last known WIDTH separately — mobile URL bar hide/show fires resize
+         but only changes HEIGHT. We must ignore those events entirely to prevent
+         the game from resetting mid-play on mobile. Desktop scroll is unaffected. */
+      var lastWidth = window.innerWidth;
       window.addEventListener("resize", function () {
+        var newWidth = window.innerWidth;
+        if (newWidth === lastWidth) return; // height-only change — ignore
+        lastWidth = newWidth;
         var isPlaying = state.started && !state.over;
-        /* Pass skipPlayerReset=true during active gameplay so a mobile URL-bar
-           hide/show (which fires resize) never resets score or player position. */
         resize(isPlaying);
         if (!isPlaying) reset();
       });
