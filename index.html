@@ -120,24 +120,18 @@
     }
 
     /* ══════════════════════════════════════════════════
-       CHROMATIC ABERRATION — Subtle Game Over FX
+       UNIVERSAL GAME OVER FX — works on all devices/browsers
     ══════════════════════════════════════════════════ */
-    @keyframes chromaticShake {
-      0%   { transform: translate(0, 0);    filter: none; }
-      20%  { transform: translate(2px, -1px);
-             filter: drop-shadow(3px 0 0 rgba(255,0,0,0.5))
-                     drop-shadow(-3px 0 0 rgba(0,255,255,0.5)); }
-      45%  { transform: translate(-2px, 1px);
-             filter: drop-shadow(-3px 0 0 rgba(255,0,0,0.45))
-                     drop-shadow(3px 0 0 rgba(0,255,255,0.45)); }
-      70%  { transform: translate(1px, -1px);
-             filter: drop-shadow(2px 0 0 rgba(255,0,0,0.3))
-                     drop-shadow(-2px 0 0 rgba(0,255,255,0.3)); }
-      100% { transform: translate(0, 0);    filter: none; }
+    @keyframes gameOverFlash {
+      0%   { filter: invert(1); opacity: 0.92; }
+      20%  { filter: invert(0); opacity: 1; }
+      45%  { filter: invert(0.7); opacity: 0.96; }
+      70%  { filter: invert(0); opacity: 1; }
+      100% { filter: invert(0); opacity: 1; }
     }
 
-    .chromatic-glitch {
-      animation: chromaticShake 0.3s ease-out forwards !important;
+    .game-over-flash {
+      animation: gameOverFlash 0.5s ease-out forwards !important;
     }
 
     /* ══════════════════════════════════════════════════
@@ -153,6 +147,14 @@
       100% { border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%; }
     }
 
+    @keyframes glassSheen {
+      0%   { transform: translateX(-120%) rotate(12deg); opacity: 0; }
+      10%  { opacity: 1; }
+      55%  { transform: translateX(280%) rotate(12deg); opacity: 0.7; }
+      70%  { opacity: 0; }
+      100% { transform: translateX(280%) rotate(12deg); opacity: 0; }
+    }
+
     .liquid-glass-btn {
       position: fixed;
       top: 20px;
@@ -160,31 +162,48 @@
       z-index: 10000;
       width: 45px;
       height: 45px;
-      background: rgba(255, 255, 255, 0.05);
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0));
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       cursor: crosshair !important;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.3);
       animation: liquidGlassBlob 6s ease-in-out infinite;
+      overflow: hidden;
+    }
+
+    .liquid-glass-btn::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 55%;
+      height: 200%;
+      background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+      animation: glassSheen 4.5s ease-in-out infinite;
+      pointer-events: none;
     }
 
     .liquid-glass-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.22);
-      box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), rgba(255,255,255,0.04));
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: inset 0 0 14px rgba(255,255,255,0.28), 0 6px 24px rgba(0,0,0,0.35);
     }
 
     [data-theme="light"] .liquid-glass-btn {
-      background: rgba(28, 28, 28, 0.06);
-      border-color: rgba(28, 28, 28, 0.14);
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, rgba(28,28,28,0.10), rgba(28,28,28,0.02));
+      border-color: rgba(28, 28, 28, 0.18);
+      box-shadow: inset 0 0 8px rgba(255,255,255,0.5), 0 4px 15px rgba(0,0,0,0.12);
+    }
+
+    [data-theme="light"] .liquid-glass-btn::after {
+      background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.35) 50%, transparent 65%);
     }
 
     [data-theme="light"] .liquid-glass-btn:hover {
-      background: rgba(28, 28, 28, 0.12);
-      border-color: rgba(28, 28, 28, 0.25);
+      background: linear-gradient(135deg, rgba(28,28,28,0.16), rgba(28,28,28,0.04));
+      border-color: rgba(28, 28, 28, 0.28);
     }
 
     /* ══════════════════════════════════════════════════
@@ -813,6 +832,26 @@
       left: 20px;
       z-index: 9999;
       display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    .character-select-title {
+      color: var(--text);
+      font-family: "Courier New", Courier, monospace;
+      font-weight: bold;
+      letter-spacing: 2px;
+      font-size: 12px;
+      margin-bottom: 4px;
+      text-align: left;
+      width: 100%;
+      text-transform: uppercase;
+      transition: color 0.3s ease;
+    }
+
+    .dj-pads-row {
+      display: flex;
       gap: 20px;
       align-items: center;
     }
@@ -823,7 +862,7 @@
       align-items: center;
       animation: padFloat 3.6s ease-in-out infinite;
     }
-    .dj-pad-wrap:nth-child(2) { animation-duration: 4.2s; animation-delay: 0.6s; }
+    .dj-pads-row .dj-pad-wrap:nth-child(2) { animation-duration: 4.2s; animation-delay: 0.6s; }
 
     .dj-label {
       font-family: monospace;
@@ -960,11 +999,13 @@
 
       /* VİZYON 3 — Shrink DJ hub ~30% on mobile */
       #dj-hub {
-        bottom: 8px; left: 8px; gap: 10px;
+        bottom: 8px; left: 8px; gap: 4px;
         transform: scale(0.7);
         transform-origin: bottom left;
       }
+      .dj-pads-row { gap: 10px; }
       .dj-pad { width: 50px; height: 50px; }
+      .character-select-title { font-size: 10px; letter-spacing: 1.5px; }
 
       .lookbook-mascot { width: 78px; height: 78px; }
 
@@ -1191,16 +1232,22 @@
   ══════════════════════════════════════════════════ -->
   <div id="dj-hub" aria-label="DJ Hub müzik istasyonu">
 
-    <!-- PAD I -->
-    <div class="dj-pad-wrap" id="nazar-wrap">
-      <span class="dj-label">I</span>
-      <img class="dj-pad" id="nazar-pad" src="nazar_front.png" alt="Beat I" role="button" tabindex="0" draggable="false" />
-    </div>
+    <div class="character-select-title">KARAKTERİNİ SEÇ</div>
 
-    <!-- PAD II -->
-    <div class="dj-pad-wrap" id="boncuk-wrap">
-      <span class="dj-label">II</span>
-      <img class="dj-pad" id="boncuk-pad" src="boncuk_front.png" alt="Beat II" role="button" tabindex="0" draggable="false" />
+    <div class="dj-pads-row">
+
+      <!-- PAD I -->
+      <div class="dj-pad-wrap" id="nazar-wrap">
+        <span class="dj-label">I</span>
+        <img class="dj-pad" id="nazar-pad" src="nazar_front.png" alt="Beat I" role="button" tabindex="0" draggable="false" />
+      </div>
+
+      <!-- PAD II -->
+      <div class="dj-pad-wrap" id="boncuk-wrap">
+        <span class="dj-label">II</span>
+        <img class="dj-pad" id="boncuk-pad" src="boncuk_front.png" alt="Beat II" role="button" tabindex="0" draggable="false" />
+      </div>
+
     </div>
 
   </div>
@@ -1215,7 +1262,6 @@
   <!-- ── AUDIO ── -->
   <audio id="beat1" src="beat_1.mp3" loop preload="none"></audio>
   <audio id="beat2" src="beat_2.mp3" loop preload="none"></audio>
-  <audio id="daktiloAudio" src="daktilo.mp3" preload="none"></audio>
 
   <script>
     /* ══════════════════════════════════════════════════
@@ -1242,7 +1288,6 @@
 
     /* ══════════════════════════════════════════════════
        LIQUID GLASS TOGGLE — toggleTheme()
-       Plays daktilo.mp3 at vol 0.2, stops after 1.5s.
        Swaps all kismet_logo.png ↔ kismet_logo_light.png
     ══════════════════════════════════════════════════ */
     function swapLogos(toLight) {
@@ -1264,14 +1309,6 @@
         html.setAttribute("data-theme", "light");
         try { localStorage.setItem("kismet-theme", "light"); } catch (e) {}
         swapLogos(true);
-      }
-
-      var daktilo = document.getElementById("daktiloAudio");
-      if (daktilo) {
-        daktilo.volume = 0.2;
-        daktilo.currentTime = 0;
-        daktilo.play().catch(function () {});
-        setTimeout(function () { daktilo.pause(); daktilo.currentTime = 0; }, 1500);
       }
     }
 
@@ -1378,10 +1415,10 @@
          imgBg, imgNazar, imgBoncuk, imgPipe,
          tavlaZariImg, tavlaTasiSiyahImg, tavlaTasiBeyazImg
        • Loader: black screen + "ASSETS YÜKLENİYOR..." — NO EMOJIS
-       • Pipes spawn at frame 60, then every 180 frames
-       • Score > 5  → 3 backgammon hazards fly right-to-left
+       • Pipes spawn at frame 60, then every 200 frames (fair difficulty)
+       • Score > 5  → 3 backgammon hazards fly right-to-left w/ sparkle trail
        • Score >= 20 → pipes oscillate via Math.sin()
-       • gameOver()  → subtle chromatic aberration micro-shake (0.3s)
+       • gameOver()  → universal CSS filter flash (0.5s) — mobile + desktop
     ══════════════════════════════════════════════════ */
     (function () {
       var canvas  = document.getElementById("nazarCanvas");
@@ -1446,7 +1483,7 @@
       var state = {
         started: false, over: false, score: 0,
         bgX: 0, bgSpeed: 1.2, gravity: 0.2, jump: -4.5,
-        pipeGap: 160, pipeSpeed: 1.5, pipeWidth: 92,
+        pipeGap: 170, pipeSpeed: 1.5, pipeWidth: 92,
         lastScorePipeId: null
       };
 
@@ -1457,12 +1494,19 @@
       /* ── Hazard state ── */
       var hazards = [], hazardSpawnTimer = 0, hazardNextSpawn = 95;
 
-      /* ── DPR resize ── */
+      /* ── Sparkle particle trail ── */
+      var particles = [];
+
+      /* ── DPR resize — uses parentElement.clientWidth to prevent mobile overflow ── */
       function resize() {
         dpr = window.devicePixelRatio || 1;
         var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-        logicalW = vw <= 768 ? 360 : 520;
-        logicalH = vw <= 768 ? 520 : 620;
+        var isMobile = vw <= 768;
+        /* Use parent container width so canvas never exceeds its container */
+        var parentW = canvas.parentElement ? canvas.parentElement.clientWidth : vw;
+        var maxW    = isMobile ? 360 : 520;
+        logicalW    = Math.min(parentW, maxW);
+        logicalH    = isMobile ? 520 : 620;
 
         canvas.width  = Math.floor(logicalW * dpr);
         canvas.height = Math.floor(logicalH * dpr);
@@ -1472,7 +1516,7 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
 
-        player.x = vw <= 768 ? 82 : 112;
+        player.x = isMobile ? 82 : 112;
         player.y = logicalH * 0.45;
       }
 
@@ -1484,6 +1528,7 @@
         frames = 0;
         pipes.length = 0;
         hazards.length = 0;
+        particles.length = 0;
         hazardSpawnTimer = 0;
         hazardNextSpawn = 95;
         player.y = logicalH * 0.45;
@@ -1549,27 +1594,18 @@
 
       function drawHazard(h) {
         if (!h.img || h.img.naturalWidth === 0) return;
-        var fx = Math.floor(h.x);
-        var fy = Math.floor(h.y);
-        /* Flickering 2D chromatic aberration halo — red & cyan ghost trails */
-        var flicker = 0.35 + 0.3 * Math.abs(Math.sin(frames * 0.14 + fx * 0.04));
-        ctx.save();
-        ctx.globalAlpha = flicker;
-        if (ctx.filter !== undefined) {
-          /* Red ghost: shifted left */
-          ctx.filter = "sepia(1) saturate(12) hue-rotate(-30deg) brightness(1.6)";
-          ctx.drawImage(h.img, fx - 3, fy, h.w, h.h);
-          /* Cyan ghost: shifted right */
-          ctx.filter = "sepia(1) saturate(12) hue-rotate(165deg) brightness(1.6)";
-          ctx.drawImage(h.img, fx + 3, fy + 1, h.w, h.h);
-        } else {
-          /* Fallback: uncoloured ghosts for old engines */
-          ctx.drawImage(h.img, fx - 3, fy, h.w, h.h);
-          ctx.drawImage(h.img, fx + 3, fy + 1, h.w, h.h);
+        /* Lightweight: draw main image only — sparkle trail provides visual feedback */
+        ctx.drawImage(h.img, Math.floor(h.x), Math.floor(h.y), h.w, h.h);
+      }
+
+      /* ── Sparkle particle trail renderer ── */
+      function drawParticles() {
+        for (var k = 0; k < particles.length; k++) {
+          var p = particles[k];
+          ctx.fillStyle = "rgba(255, 235, 150, " + p.alpha + ")";
+          var half = p.size * 0.5;
+          ctx.fillRect(Math.floor(p.x - half), Math.floor(p.y - half), p.size, p.size);
         }
-        ctx.restore();
-        /* Main image on top — crisp & floored */
-        ctx.drawImage(h.img, fx, fy, h.w, h.h);
       }
 
       /* ── Collision ── */
@@ -1599,13 +1635,13 @@
         }
       }
 
-      /* ── Chromatic Aberration Micro-shake — subtle, 0.3s ── */
-      function triggerChromaticAberration() {
+      /* ── Universal Game Over FX — lightweight filter flash, works on all devices ── */
+      function triggerGameOverFX() {
         var gameContainer = canvas.closest(".game-shell") || canvas;
-        gameContainer.classList.add("chromatic-glitch");
+        gameContainer.classList.add("game-over-flash");
         setTimeout(function () {
-          gameContainer.classList.remove("chromatic-glitch");
-        }, 300);
+          gameContainer.classList.remove("game-over-flash");
+        }, 500);
       }
 
       function gameOver() {
@@ -1616,7 +1652,7 @@
         hiddenScoreInput.value = s;
         overlay.style.display = "flex";
 
-        triggerChromaticAberration();
+        triggerGameOverFX();
       }
 
       function update() {
@@ -1625,8 +1661,9 @@
         player.vy += state.gravity;
         player.y  += player.vy;
 
-        /* First pipe at frame 60, then every 180 frames */
-        if (frames === 60 || (frames > 60 && (frames - 60) % 180 === 0)) spawn();
+        /* First pipe at frame 60, then every 200 frames */
+        var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
+        if (pipeSpawnedThisFrame) spawn();
 
         /* Update pipes + sinusoidal movement at score >= 20 */
         for (var i = pipes.length - 1; i >= 0; i--) {
@@ -1640,8 +1677,8 @@
           if (pipes[i].x + state.pipeWidth < -10) pipes.splice(i, 1);
         }
 
-        /* Hazard spawning after score > 5 */
-        if (state.score > 5) {
+        /* Hazard spawning after score > 5 — never on pipe-spawn frames */
+        if (state.score > 5 && !pipeSpawnedThisFrame) {
           hazardSpawnTimer++;
           if (hazardSpawnTimer >= hazardNextSpawn) {
             hazardSpawnTimer = 0;
@@ -1650,10 +1687,23 @@
           }
         }
 
-        /* Move hazards right-to-left */
+        /* Move hazards right-to-left + emit sparkle particles */
         for (var j = hazards.length - 1; j >= 0; j--) {
           hazards[j].x -= hazards[j].speed;
+          /* Emit 2 sparkle particles per frame per hazard */
+          particles.push({
+            x: hazards[j].x + hazards[j].w * 0.5 + (Math.random() - 0.5) * hazards[j].w,
+            y: hazards[j].y + hazards[j].h * 0.5 + (Math.random() - 0.5) * hazards[j].h,
+            alpha: 1,
+            size: Math.random() * 3 + 2
+          });
           if (hazards[j].x + hazards[j].w < 0) hazards.splice(j, 1);
+        }
+
+        /* Decay sparkle particles */
+        for (var k = particles.length - 1; k >= 0; k--) {
+          particles[k].alpha -= 0.05;
+          if (particles[k].alpha <= 0) particles.splice(k, 1);
         }
 
         collide();
@@ -1677,6 +1727,7 @@
         drawBgImg();
         pipes.forEach(drawPipeImg);
         hazards.forEach(drawHazard);
+        drawParticles();
         drawPlyImg();
 
         if (!state.started && !state.over) {
