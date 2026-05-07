@@ -1414,7 +1414,7 @@
         document.getElementById("goForm"),
         document.getElementById("goEmail"),
         document.getElementById("goSubmitBtn"),
-        "[ SKORU KAYDEDİLDİ ]"
+        "[ LİSTEYE ALINDIN // SKORUN KAYDEDİLDİ. ]"
       );
     })();
 
@@ -1607,8 +1607,8 @@
        • Zero-gap: resize() uses Math.floor(parentElement.clientWidth)
        • Game starts ONLY when ALL 7 assets are loaded
        • Score > 5  → backgammon hazards + Star Sparkle Trail
-       • Score >= 10 → pipes begin slow vertical oscillation (vertSpeed 0.5)
-       • Score >= 20 → full vertical oscillation (vertSpeed 1.2)
+       • Score >= 10 → pipes begin slow sinusoidal oscillation (+/- 10px, Math.sin based)
+       • engel.png drawn at native aspect ratio via PIPE_IMG_H constant + clip rects
        • gameOver()  → Chromatic Aberration CSS filter flash (0.5s)
     ══════════════════════════════════════════════════ */
     (function () {
@@ -1735,9 +1735,7 @@
           id: ++pipeIdSeed,
           x: logicalW + state.pipeWidth + 10,
           baseGapY: baseGapY,
-          gapY: baseGapY,
-          targetY: baseGapY,   // jetpack destination
-          jetpackTimer: 0      // frames until next erratic thrust
+          gapY: baseGapY
         });
       }
 
@@ -1771,16 +1769,21 @@
       }
 
       /* Pipe height is always PIPE_IMG_H — a constant tall enough to cover any
-         screen. Only the y-translation changes (via Math.sin oscillation), so
-         the engel.png aspect ratio is never squashed or deformed. A clip rect
-         trims each pipe to its on-screen region before drawing. */
+         screen. pipeDrawWidth is derived from engel.png's natural aspect ratio so
+         the texture is never squashed or stretched. Collision still uses state.pipeWidth.
+         A clip rect trims each pipe to its visible on-screen region before drawing. */
       var PIPE_IMG_H = 900;
 
       function drawPipeImg(p) {
         var tH = Math.floor(p.gapY - state.pipeGap / 2); // bottom edge of top pipe
         var bY = Math.floor(p.gapY + state.pipeGap / 2); // top edge of bottom pipe
         var px = Math.floor(p.x);
-        var pw = state.pipeWidth;
+        var pw = state.pipeWidth; // collision width — unchanged
+
+        /* Aspect-ratio-preserving draw width: scale to PIPE_IMG_H height */
+        var pipeDrawWidth = (obstacleImg.naturalWidth && obstacleImg.naturalHeight)
+          ? Math.round(PIPE_IMG_H * obstacleImg.naturalWidth / obstacleImg.naturalHeight)
+          : pw;
 
         /* Top pipe — drawn upward from tH, clipped to [0 .. tH] */
         ctx.save();
@@ -1789,7 +1792,7 @@
         ctx.clip();
         ctx.translate(px, tH);
         ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, pw, PIPE_IMG_H);
+        ctx.drawImage(obstacleImg, 0, 0, pipeDrawWidth, PIPE_IMG_H);
         ctx.restore();
 
         /* Bottom pipe — drawn downward from bY, clipped to [bY .. logicalH] */
@@ -1797,7 +1800,7 @@
         ctx.beginPath();
         ctx.rect(px, bY, pw, logicalH - bY);
         ctx.clip();
-        ctx.drawImage(obstacleImg, px, bY, pw, PIPE_IMG_H);
+        ctx.drawImage(obstacleImg, px, bY, pipeDrawWidth, PIPE_IMG_H);
         ctx.restore();
       }
 
@@ -1870,31 +1873,14 @@
         var pipeSpawnedThisFrame = (frames === 60 || (frames > 60 && (frames - 60) % 200 === 0));
         if (pipeSpawnedThisFrame) spawn();
 
-        /* JETPACK movement — score >= 10: erratic concrete-block-with-malfunctioning-jetpack.
-           gapY (the gap centre) is interpolated toward a randomly chosen targetY.
-           The pipe IMAGE height (PIPE_IMG_H) is NEVER changed — only gapY shifts,
-           so engel.png is always drawn at its true aspect ratio via the clip rects. */
-        var jetpackActive    = state.score >= 10;
-        var jetpackIntensity = state.score >= 20 ? 1.0 : 0.45;
-
+        /* Slow sinusoidal oscillation — score >= 10: pipes gently drift up and down
+           by a fixed +/- 10px using Math.sin(frames / 60). Perfectly predictable,
+           never alters PIPE_IMG_H, so engel.png aspect ratio stays pristine. */
         for (var i = pipes.length - 1; i >= 0; i--) {
           pipes[i].x -= state.pipeSpeed;
 
-          if (jetpackActive) {
-            pipes[i].jetpackTimer--;
-            if (pipes[i].jetpackTimer <= 0) {
-              /* Pick a wildly different target — erratic, unpredictable burst */
-              var jEdge = 115 + state.pipeGap / 2;
-              pipes[i].targetY = jEdge + Math.random() * (logicalH - jEdge * 2);
-              /* Short timer = sudden jerk, long timer = slow drift — malfunctioning feel */
-              pipes[i].jetpackTimer = 28 + Math.floor(Math.random() * 95);
-            }
-            /* Heavy lerp: pipe lurches toward target like a concrete block */
-            pipes[i].gapY += (pipes[i].targetY - pipes[i].gapY) * (0.038 * jetpackIntensity);
-            /* Hard clamp so gap never clips ceiling/floor */
-            var clampEdge = 105;
-            if (pipes[i].gapY < clampEdge)              pipes[i].gapY = clampEdge;
-            if (pipes[i].gapY > logicalH - clampEdge)   pipes[i].gapY = logicalH - clampEdge;
+          if (state.score >= 10) {
+            pipes[i].gapY = pipes[i].baseGapY + Math.sin(frames / 60) * 10;
           } else {
             pipes[i].gapY = pipes[i].baseGapY;
           }
