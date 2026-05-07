@@ -75,6 +75,7 @@
       scroll-behavior: smooth;
       cursor: crosshair !important;
       transition: background-color 0.3s ease, color 0.3s ease;
+      overscroll-behavior: none;
     }
     body { min-height: 100vh; }
 
@@ -1281,10 +1282,21 @@
        Swaps all kismet_logo.png ↔ kismet_logo_light.png
        for both header (.logo-wrap img) and footer (.footer-logo)
     ══════════════════════════════════════════════════ */
+    /* Fade the .kismet-logo element out (100 ms), swap src, fade back in.
+       Inline opacity is removed after the fade-in so each image reverts to its
+       own CSS opacity value (e.g. 0.15 for .footer-logo). */
     function swapLogos(toLight) {
       var logoImgs = document.querySelectorAll(".logo-wrap img, .footer-logo");
       logoImgs.forEach(function (img) {
-        img.src = toLight ? "kismet_logo_light.png" : "kismet_logo.png";
+        img.style.transition = "opacity 0.1s ease";
+        img.style.opacity    = "0";
+        setTimeout(function () {
+          img.src = toLight ? "kismet_logo_light.png" : "kismet_logo.png";
+          /* Removing the inline opacity lets the CSS value take over again;
+             the transition still animates the change back to the CSS opacity. */
+          img.style.opacity = "";
+          setTimeout(function () { img.style.transition = ""; }, 150);
+        }, 110);
       });
     }
 
@@ -1329,27 +1341,77 @@
       var nazarPad  = document.getElementById("nazar-pad");
       var boncukPad = document.getElementById("boncuk-pad");
 
+      /* Single shared fade timer — cancels any in-flight crossfade before starting
+         a new one, preventing volume drift or stacked setInterval calls. */
+      var _fadeTimer = null;
+      var FADE_STEPS = 12;
+      var FADE_MS    = 18; // ms per step → ~220 ms total crossfade
+
       function isActive(pad) { return pad.classList.contains("active-dj"); }
 
-      function startPad(pad, audio, charKey) {
-        pad.classList.add("active-dj");
-        audio.play().catch(function () {});
-        if (window.KISMET_setChar) window.KISMET_setChar(charKey);
+      function _clearFade() {
+        if (_fadeTimer !== null) { clearInterval(_fadeTimer); _fadeTimer = null; }
       }
 
-      function stopPad(pad, audio) {
-        pad.classList.remove("active-dj");
-        audio.pause();
-        audio.currentTime = 0;
+      /* Fade-out a pad and silence it cleanly without touching rAF or game state. */
+      function fadePadOut(pad, audio, onDone) {
+        _clearFade();
+        var step = 0;
+        _fadeTimer = setInterval(function () {
+          step++;
+          audio.volume = Math.max(0, 1 - step / FADE_STEPS);
+          if (step >= FADE_STEPS) {
+            _clearFade();
+            pad.classList.remove("active-dj");
+            audio.pause();
+            audio.volume = 1;
+            if (onDone) onDone();
+          }
+        }, FADE_MS);
+      }
+
+      /* Crossfade: fade out the old pad while fading in the new one.
+         Only updates player.img reference — never touches the game loop. */
+      function crossfade(outPad, outAudio, inPad, inAudio, charKey) {
+        _clearFade();
+        inPad.classList.add("active-dj");
+        inAudio.volume = 0;
+        inAudio.play().catch(function () {});
+        /* Update character sprite reference only — zero rAF impact */
+        if (window.KISMET_setChar) window.KISMET_setChar(charKey);
+
+        var step = 0;
+        _fadeTimer = setInterval(function () {
+          step++;
+          var t = step / FADE_STEPS;
+          outAudio.volume = Math.max(0, 1 - t);
+          inAudio.volume  = Math.min(1, t);
+          if (step >= FADE_STEPS) {
+            _clearFade();
+            outPad.classList.remove("active-dj");
+            outAudio.pause();
+            outAudio.volume = 1;
+            inAudio.volume  = 1;
+          }
+        }, FADE_MS);
       }
 
       function toggle(thisPad, thisAudio, thisChar, thatPad, thatAudio) {
         if (isActive(thisPad)) {
-          stopPad(thisPad, thisAudio);
-          if (window.KISMET_setChar) window.KISMET_setChar("nazar");
+          /* Turning off: fade out and revert character to default */
+          fadePadOut(thisPad, thisAudio, function () {
+            if (window.KISMET_setChar) window.KISMET_setChar("nazar");
+          });
+        } else if (isActive(thatPad)) {
+          /* Switching tracks: smooth crossfade, no abrupt seek */
+          crossfade(thatPad, thatAudio, thisPad, thisAudio, thisChar);
         } else {
-          stopPad(thatPad, thatAudio);
-          startPad(thisPad, thisAudio, thisChar);
+          /* Cold start: neither pad was active */
+          _clearFade();
+          thisPad.classList.add("active-dj");
+          thisAudio.volume = 1;
+          thisAudio.play().catch(function () {});
+          if (window.KISMET_setChar) window.KISMET_setChar(thisChar);
         }
       }
 
@@ -1364,14 +1426,15 @@
       addKey(nazarPad,  function () { toggle(nazarPad, beat1, "nazar",  boncukPad, beat2); });
       addKey(boncukPad, function () { toggle(boncukPad, beat2, "boncuk", nazarPad, beat1); });
 
+      /* External pause (e.g. browser auto-pause) — sync UI without seeking */
       beat1.addEventListener("pause", function () {
-        if (!beat1.seeking) {
+        if (!beat1.seeking && !_fadeTimer) {
           nazarPad.classList.remove("active-dj");
           if (window.KISMET_setChar) window.KISMET_setChar("nazar");
         }
       });
       beat2.addEventListener("pause", function () {
-        if (!beat2.seeking) {
+        if (!beat2.seeking && !_fadeTimer) {
           boncukPad.classList.remove("active-dj");
           if (window.KISMET_setChar) window.KISMET_setChar("nazar");
         }
@@ -1477,8 +1540,10 @@
       var hazards = [], hazardSpawnTimer = 0, hazardNextSpawn = 95;
       var particles = [];
 
-      /* ── ZERO-GAP resize: Math.floor on all parent dimensions ── */
-      function resize() {
+      /* ── ZERO-GAP resize: Math.floor on all parent dimensions ──
+         skipPlayerReset = true during active gameplay so score/position survive
+         mobile URL-bar show/hide events (which fire resize but only change height). */
+      function resize(skipPlayerReset) {
         dpr = window.devicePixelRatio || 1;
         var vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
         var isMobile = vw <= 768;
@@ -1498,8 +1563,11 @@
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.scale(dpr, dpr);
 
+        /* Always update x (layout change), but only reset y when safe to do so */
         player.x = isMobile ? 82 : 112;
-        player.y = Math.floor(logicalH * 0.45);
+        if (!skipPlayerReset) {
+          player.y = Math.floor(logicalH * 0.45);
+        }
       }
 
       function reset() {
@@ -1559,16 +1627,35 @@
         ctx.drawImage(ch, Math.floor(player.x), Math.floor(player.y), player.w, player.h);
       }
 
+      /* Pipe height is always PIPE_IMG_H — a constant tall enough to cover any
+         screen. Only the y-translation changes (via Math.sin oscillation), so
+         the engel.png aspect ratio is never squashed or deformed. A clip rect
+         trims each pipe to its on-screen region before drawing. */
+      var PIPE_IMG_H = 900;
+
       function drawPipeImg(p) {
-        var tH = Math.floor(p.gapY - state.pipeGap / 2);
-        var bY = Math.floor(p.gapY + state.pipeGap / 2);
+        var tH = Math.floor(p.gapY - state.pipeGap / 2); // bottom edge of top pipe
+        var bY = Math.floor(p.gapY + state.pipeGap / 2); // top edge of bottom pipe
         var px = Math.floor(p.x);
+        var pw = state.pipeWidth;
+
+        /* Top pipe — drawn upward from tH, clipped to [0 .. tH] */
         ctx.save();
+        ctx.beginPath();
+        ctx.rect(px, 0, pw, tH);
+        ctx.clip();
         ctx.translate(px, tH);
         ctx.scale(1, -1);
-        ctx.drawImage(obstacleImg, 0, 0, state.pipeWidth, tH);
+        ctx.drawImage(obstacleImg, 0, 0, pw, PIPE_IMG_H);
         ctx.restore();
-        ctx.drawImage(obstacleImg, px, bY, state.pipeWidth, Math.floor(logicalH - bY));
+
+        /* Bottom pipe — drawn downward from bY, clipped to [bY .. logicalH] */
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(px, bY, pw, logicalH - bY);
+        ctx.clip();
+        ctx.drawImage(obstacleImg, px, bY, pw, PIPE_IMG_H);
+        ctx.restore();
       }
 
       function drawHazard(h) {
@@ -1739,7 +1826,13 @@
 
       retryBtn.addEventListener("click", reset);
 
-      window.addEventListener("resize", function () { resize(); reset(); });
+      window.addEventListener("resize", function () {
+        var isPlaying = state.started && !state.over;
+        /* Pass skipPlayerReset=true during active gameplay so a mobile URL-bar
+           hide/show (which fires resize) never resets score or player position. */
+        resize(isPlaying);
+        if (!isPlaying) reset();
+      });
 
       resize();
       requestAnimationFrame(loop);
