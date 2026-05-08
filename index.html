@@ -88,8 +88,7 @@
       color: var(--text);
       font-family: var(--mono);
       cursor: crosshair !important;
-      transition: background-color 0.4s ease-out, color 0.4s ease-out, border-color 0.4s ease-out, fill 0.4s ease-out, stroke 0.4s ease-out;
-      will-change: background-color, color;
+      transition: none !important;
     }
 
     a, button, input, textarea, select,
@@ -422,7 +421,7 @@
       margin: 0 auto 62px;
       background: var(--bg);
       overflow: hidden;
-      transition: background-color 0.4s ease-out;
+      transition: none;
     }
 
     /* touch-action: none prevents browser-level panning that causes the white gap */
@@ -431,7 +430,7 @@
       width: 100% !important;
       max-width: 100vw;
       background: var(--bg);
-      transition: background-color 0.4s ease-out;
+      transition: none;
       touch-action: none;
     }
 
@@ -462,7 +461,7 @@
       gap: 16px;
       z-index: 10;
       background: var(--bg);
-      transition: background-color 0.4s ease-out;
+      transition: none;
     }
 
     .canvas-loader-text {
@@ -518,7 +517,7 @@
       gap: 12px;
       text-align: center;
       box-shadow: 0 0 40px rgba(91,124,153,0.20), inset 0 0 24px rgba(91,124,153,0.03);
-      transition: background-color 0.4s ease-out;
+      transition: none;
     }
 
     .go-title {
@@ -562,7 +561,7 @@
       outline: none;
       text-align: center;
       width: 100%;
-      transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.3s ease;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
     }
     .go-email:focus, .go-email:hover { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
     .go-email::placeholder { color: #3d5566; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
@@ -741,7 +740,7 @@
       margin-bottom: 26px;
       overflow: hidden;
       background: var(--bg);
-      transition: background-color 0.4s ease-out;
+      transition: none;
     }
 
     .marquee-track {
@@ -1002,7 +1001,6 @@
       margin-bottom: 5px;
       letter-spacing: 3px;
       font-size: 12px;
-      transition: color 0.3s ease;
     }
 
     .dj-pad {
@@ -1088,7 +1086,7 @@
       text-transform: uppercase;
       color: var(--text);
       white-space: nowrap;
-      transition: background-color 0.4s ease-out, color 0.4s ease-out;
+      transition: none;
     }
 
     /* ══════════════════════════════════════════════════
@@ -1485,21 +1483,10 @@
        Swaps all kismet_logo.png ↔ kismet_logo_light.png
        for both header (.logo-wrap img) and footer (.footer-logo)
     ══════════════════════════════════════════════════ */
-    /* Fade the .kismet-logo element out (100 ms), swap src, fade back in.
-       Inline opacity is removed after the fade-in so each image reverts to its
-       own CSS opacity value (e.g. 0.15 for .footer-logo). */
     function swapLogos(toLight) {
       var logoImgs = document.querySelectorAll(".logo-wrap img, .footer-logo");
       logoImgs.forEach(function (img) {
-        img.style.transition = "opacity 0.1s ease";
-        img.style.opacity    = "0";
-        setTimeout(function () {
-          img.src = toLight ? "kismet_logo_light.png" : "kismet_logo.png";
-          /* Removing the inline opacity lets the CSS value take over again;
-             the transition still animates the change back to the CSS opacity. */
-          img.style.opacity = "";
-          setTimeout(function () { img.style.transition = ""; }, 150);
-        }, 110);
+        img.src = toLight ? "kismet_logo_light.png" : "kismet_logo.png";
       });
     }
 
