@@ -863,7 +863,8 @@
       width: 100%;
       height: 260px;
       background-color: transparent;
-      cursor: pointer !important;
+      cursor: crosshair !important;
+      pointer-events: auto;
       --poster-color: transparent;
     }
 
@@ -1267,6 +1268,7 @@
                 exposure="1"
                 interaction-prompt="none"
                 camera-orbit="0deg 90deg 105%"
+                auto-rotate-delay="0"
                 aria-label="Nazar 3D modeli — tıkla ve döndür"
               ></model-viewer>
 
@@ -1281,6 +1283,7 @@
                 exposure="1"
                 interaction-prompt="none"
                 camera-orbit="0deg 90deg 105%"
+                auto-rotate-delay="0"
                 aria-label="Boncuk 3D modeli — tıkla ve döndür"
               ></model-viewer>
 
