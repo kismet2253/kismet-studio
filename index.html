@@ -98,7 +98,7 @@
 
     a, button, input, textarea, select,
     [role="button"], [tabindex],
-    .dj-pad, .lookbook-mascot, .slot-card,
+    .dj-pad, .lookbook-3d, .slot-card,
     .nav a, .funnel-form button, .go-submit, .go-replay,
     .community-inner a, canvas {
       cursor: crosshair !important;
@@ -859,49 +859,12 @@
       z-index: 1;
     }
 
-    .lookbook-mascot {
-      width: 110px;
-      height: 110px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .lookbook-mascot:hover {
-      transform: scale(1.05);
-      filter: drop-shadow(0 0 10px rgba(91,124,153,0.5));
-    }
-
-    .lookbook-mascot.is-flipped { transform: rotateY(180deg); }
-
-    .mascot-face {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-
-    .mascot-face.front {
-      transform: rotateY(0deg);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-    .mascot-face.back {
-      transform: rotateY(180deg);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-    }
-
-    .mascot-face img {
+    .lookbook-3d {
       width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: block;
-      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
-      user-select: none;
-      -webkit-user-drag: none;
-      pointer-events: none;
+      height: 260px;
+      background-color: transparent;
+      cursor: pointer !important;
+      --poster-color: transparent;
     }
 
     .community-card {
@@ -1130,7 +1093,7 @@
       .dj-pads-row { gap: 10px; }
       .dj-pad { width: 50px; height: 50px; }
 
-      .lookbook-mascot { width: 78px; height: 78px; }
+      .lookbook-3d { height: 200px; }
 
       .site-footer { padding: 60px 16px 40px; }
       .site-footer .footer-logo { height: 70px; }
@@ -1291,30 +1254,38 @@
           <!-- ══ 3D LOOKBOOK SHOWCASE ══ -->
           <div class="lookbook-card" aria-label="Lookbook 3D vitrin">
             <span class="lookbook-tag">LOOKBOOK</span>
-            <div class="lookbook-stage">
+            <div class="lookbook-stage" style="width:100%;flex-direction:column;gap:12px;">
 
-              <!-- Plush 1: Nazar -->
-              <div class="lookbook-mascot" role="button" tabindex="0" aria-label="Nazar maskotu — tıkla ve çevir">
-                <div class="mascot-face front">
-                  <img src="nazar_front.png" alt="Nazar ön" />
-                </div>
-                <div class="mascot-face back">
-                  <img src="nazar_back.png" alt="Nazar arka" />
-                </div>
-              </div>
+              <!-- 3D Model 1: Nazar -->
+              <model-viewer
+                src="nazar_3d.glb"
+                id="nazar3D"
+                class="lookbook-3d"
+                camera-controls
+                disable-zoom
+                disable-pan
+                shadow-intensity="1"
+                exposure="1"
+                interaction-prompt="none"
+                aria-label="Nazar 3D modeli — tıkla ve döndür"
+              ></model-viewer>
 
-              <!-- Plush 2: Boncuk -->
-              <div class="lookbook-mascot" role="button" tabindex="0" aria-label="Boncuk maskotu — tıkla ve çevir">
-                <div class="mascot-face front">
-                  <img src="boncuk_front.png" alt="Boncuk ön" />
-                </div>
-                <div class="mascot-face back">
-                  <img src="boncuk_back.png" alt="Boncuk arka" />
-                </div>
-              </div>
+              <!-- 3D Model 2: Boncuk -->
+              <model-viewer
+                src="boncuk_3d.glb"
+                id="boncuk3D"
+                class="lookbook-3d"
+                camera-controls
+                disable-zoom
+                disable-pan
+                shadow-intensity="1"
+                exposure="1"
+                interaction-prompt="none"
+                aria-label="Boncuk 3D modeli — tıkla ve döndür"
+              ></model-viewer>
 
             </div>
-            <p class="lookbook-hint">// tıkla &amp; çevir</p>
+            <p class="lookbook-hint">// tıkla &amp; döndür</p>
           </div>
 
           <!-- ══ COMMUNITY ══ -->
@@ -1373,6 +1344,9 @@
     <img class="tesbih" src="tesbih.png" alt="Tesbih" />
     <img class="cay"    src="cay.png"    alt="Çay bardağı" />
   </div>
+
+  <!-- model-viewer — Google Modelviewer for 3D GLB rendering -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
 
   <!-- ── AUDIO ── -->
   <audio id="beat1" src="beat_1.mp3" loop preload="none"></audio>
@@ -1639,19 +1613,16 @@
     })();
 
     /* ══════════════════════════════════════════════════
-       3D LOOKBOOK — click to flip, keyboard accessible
+       3D LOOKBOOK — click to toggle auto-rotate
     ══════════════════════════════════════════════════ */
     (function () {
-      document.querySelectorAll(".lookbook-mascot").forEach(function (mascot) {
-        mascot.addEventListener("click", function (e) {
-          e.stopPropagation();
-          mascot.classList.toggle("is-flipped");
-        });
-        mascot.addEventListener("keydown", function (e) {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            e.stopPropagation();
-            mascot.classList.toggle("is-flipped");
+      document.querySelectorAll(".lookbook-3d").forEach(function (model) {
+        model.addEventListener("click", function () {
+          if (model.hasAttribute("auto-rotate")) {
+            model.removeAttribute("auto-rotate");
+          } else {
+            model.setAttribute("auto-rotate", "");
+            model.setAttribute("rotation-per-second", "30deg");
           }
         });
       });
