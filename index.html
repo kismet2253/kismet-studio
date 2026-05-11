@@ -1256,7 +1256,7 @@
             <span class="lookbook-tag">LOOKBOOK</span>
             <div class="lookbook-stage" style="width:100%;flex-direction:column;gap:12px;">
 
-              <!-- 3D Model 1: Nazar -->
+              <!-- 3D Model 1: Nazar — clockwise on click -->
               <model-viewer
                 src="nazar_3d.glb"
                 id="nazar3D"
@@ -1267,10 +1267,11 @@
                 shadow-intensity="1"
                 exposure="1"
                 interaction-prompt="none"
+                camera-orbit="0deg 90deg 105%"
                 aria-label="Nazar 3D modeli — tıkla ve döndür"
               ></model-viewer>
 
-              <!-- 3D Model 2: Boncuk -->
+              <!-- 3D Model 2: Boncuk — counter-clockwise on click -->
               <model-viewer
                 src="boncuk_3d.glb"
                 id="boncuk3D"
@@ -1281,6 +1282,7 @@
                 shadow-intensity="1"
                 exposure="1"
                 interaction-prompt="none"
+                camera-orbit="0deg 90deg 105%"
                 aria-label="Boncuk 3D modeli — tıkla ve döndür"
               ></model-viewer>
 
@@ -1613,19 +1615,35 @@
     })();
 
     /* ══════════════════════════════════════════════════
-       3D LOOKBOOK — click to toggle auto-rotate
+       3D LOOKBOOK — asymmetrical click-to-rotate
+       #nazar3D  → clockwise         (-25deg)
+       #boncuk3D → counter-clockwise (+25deg)
     ══════════════════════════════════════════════════ */
     (function () {
-      document.querySelectorAll(".lookbook-3d").forEach(function (model) {
-        model.addEventListener("click", function () {
-          if (model.hasAttribute("auto-rotate")) {
-            model.removeAttribute("auto-rotate");
+      var nazarModel  = document.getElementById("nazar3D");
+      var boncukModel = document.getElementById("boncuk3D");
+
+      if (nazarModel) {
+        nazarModel.addEventListener("click", function () {
+          if (nazarModel.hasAttribute("auto-rotate")) {
+            nazarModel.removeAttribute("auto-rotate");
           } else {
-            model.setAttribute("auto-rotate", "");
-            model.setAttribute("rotation-per-second", "30deg");
+            nazarModel.setAttribute("rotation-per-second", "-25deg");
+            nazarModel.setAttribute("auto-rotate", "true");
           }
         });
-      });
+      }
+
+      if (boncukModel) {
+        boncukModel.addEventListener("click", function () {
+          if (boncukModel.hasAttribute("auto-rotate")) {
+            boncukModel.removeAttribute("auto-rotate");
+          } else {
+            boncukModel.setAttribute("rotation-per-second", "25deg");
+            boncukModel.setAttribute("auto-rotate", "true");
+          }
+        });
+      }
     })();
 
     /* ══════════════════════════════════════════════════
