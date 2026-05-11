@@ -52,6 +52,7 @@
       --overlay-bg:  rgba(2,2,2,0.88);
       --mono:        "Courier New", Courier, monospace;
       --brutal:      "Arial Black", "Helvetica Neue", Arial, sans-serif;
+      color-scheme: dark;
     }
 
     /* ── HIGH-FASHION BRUTALIST Light mode ── */
@@ -63,7 +64,11 @@
       --surface:    #D2CEC6;
       --surface2:   #dcdcdc;
       --overlay-bg: rgba(245,245,245,0.92);
+      color-scheme: light;
     }
+
+    /* Instant hard-cut during theme toggle — no cross-fading CSS variables */
+    [data-no-transition] * { transition: none !important; }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     ::selection { background: var(--blue); color: #fff; }
@@ -126,8 +131,7 @@
       z-index: 99999;
       background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
       animation: crtFlicker 0.3s infinite;
-      transition: none;
-      will-change: opacity;
+      transition: none !important;
       transform: translateZ(0);
     }
 
@@ -204,11 +208,9 @@
       width: 45px;
       height: 45px;
       background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0));
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.18);
       cursor: crosshair !important;
-      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      transition: background 0.3s ease, border-color 0.3s ease;
       box-shadow: inset 0 0 10px rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.3);
       animation: liquidGlassBlob 6s ease-in-out infinite;
       overflow: hidden;
@@ -255,7 +257,6 @@
       left: 20%;
       pointer-events: none;
       animation: suzulme 3s ease-in-out infinite;
-      will-change: transform;
     }
 
     /* Dark mode (default): show sun (gunes), hide star (yildiz) */
@@ -290,9 +291,12 @@
       81% { transform: none; }
     }
 
-    @keyframes slotPulse {
-      0%, 100% { border-color: var(--blue); box-shadow: 0 0 8px rgba(91,124,153,0.35); }
-      50%       { border-color: rgba(91,124,153,0.35); box-shadow: 0 0 18px rgba(91,124,153,0.12); }
+    @keyframes slotRotateOptimized {
+      0%   { transform: rotate(0deg)   scale(1);    }
+      25%  { transform: rotate(90deg)  scale(0.72); }
+      50%  { transform: rotate(180deg) scale(1);    }
+      75%  { transform: rotate(270deg) scale(0.72); }
+      100% { transform: rotate(360deg) scale(1);    }
     }
 
     @keyframes fadeInUp {
@@ -302,10 +306,6 @@
 
     @keyframes spin    { to { transform: rotate(360deg); } }
 
-    @keyframes slotRotate {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
     @keyframes ledFlow { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
     @keyframes spin360 {
@@ -774,8 +774,9 @@
       border: none;
       min-height: 210px;
       position: relative;
+      overflow: visible;
       background: rgba(91,124,153,0.03);
-      transition: background 0.25s ease, border-style 0.1s ease;
+      transition: background 0.25s ease;
       opacity: 0;
       animation: fadeInUp 0.65s ease forwards;
     }
@@ -787,12 +788,12 @@
     .slot-card::before {
       content: '';
       position: absolute;
-      inset: 0;
+      inset: -4px;
       border: 1px dashed var(--blue);
       border-radius: 50%;
-      animation: slotRotate 60s linear infinite;
+      animation: slotRotateOptimized 50s linear infinite;
       pointer-events: none;
-      will-change: transform;
+      z-index: 0;
     }
 
     .slot-card:hover {
@@ -802,7 +803,7 @@
 
     .slot-card:hover::before {
       border-style: solid;
-      animation: slotRotate 60s linear infinite, slotPulse 1.4s ease-in-out infinite;
+      animation: slotRotateOptimized 18s linear infinite;
     }
 
     .slot-card span {
@@ -1021,7 +1022,6 @@
     .dj-pad.active-dj {
       animation: spin360 3s linear infinite;
       filter: drop-shadow(0 0 15px #5b7c99);
-      will-change: transform;
     }
 
     /* ══════════════════════════════════════════════════
@@ -1044,21 +1044,18 @@
 
     .hali {
       width: 210px; bottom: 0; right: 0; opacity: 0.95;
-      will-change: transform;
       animation: rugFloat 6s ease-in-out infinite;
     }
 
     .tesbih {
       width: 120px; bottom: 12px; right: 92px; opacity: 0.9;
       transform-origin: center top;
-      will-change: transform;
       animation: tesbihSwing 5s ease-in-out infinite;
       animation-delay: 0.8s;
     }
 
     .cay {
       width: 82px; bottom: 34px; right: 44px; opacity: 0.96;
-      will-change: transform;
       animation: cayFloat 4s ease-in-out infinite;
       animation-delay: 1.4s;
     }
@@ -1139,7 +1136,7 @@
       .site-footer .footer-logo { height: 70px; }
 
       .slot-card {
-        overflow: hidden;
+        overflow: visible;
         animation: fadeInUp 0.65s ease forwards, liquidBlob 6s ease-in-out infinite;
       }
       .slot-card:nth-child(1) {
@@ -1155,8 +1152,8 @@
         animation: fadeInUp 0.65s 0.55s ease forwards, liquidBlob 4.8s 2.1s ease-in-out infinite;
       }
       .slot-card:hover::before {
-        animation: slotRotate 60s linear infinite, slotPulse 1.4s ease-in-out infinite;
-        border-radius: 0;
+        animation: slotRotateOptimized 18s linear infinite;
+        border-radius: 50%;
       }
 
       .slot-card {
@@ -1494,6 +1491,9 @@
       var html    = document.documentElement;
       var isLight = html.getAttribute("data-theme") === "light";
 
+      /* Freeze all transitions for a 0ms hard-cut — no theme cross-fade lag */
+      html.setAttribute("data-no-transition", "");
+
       if (isLight) {
         html.removeAttribute("data-theme");
         try { localStorage.setItem("kismet-theme", "dark"); } catch (e) {}
@@ -1503,6 +1503,13 @@
         try { localStorage.setItem("kismet-theme", "light"); } catch (e) {}
         swapLogos(true);
       }
+
+      /* Re-enable transitions after the browser has painted the new theme */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          html.removeAttribute("data-no-transition");
+        });
+      });
     }
 
     /* Sync logos to whatever theme is already active on load */
@@ -1616,17 +1623,17 @@
       addKey(nazarPad,  function () { toggle(nazarPad, beat1, "nazar",  boncukPad, beat2); });
       addKey(boncukPad, function () { toggle(boncukPad, beat2, "boncuk", nazarPad, beat1); });
 
-      /* External pause (e.g. browser auto-pause) — sync UI without seeking */
+      /* External pause (e.g. browser auto-pause) — sync active-dj UI only.
+         Do NOT reset KISMET_setChar here: crossfade sets the char at start and the
+         intentional outAudio.pause() at the END of crossfade would overwrite it. */
       beat1.addEventListener("pause", function () {
         if (!beat1.seeking && !_fadeTimer) {
           nazarPad.classList.remove("active-dj");
-          if (window.KISMET_setChar) window.KISMET_setChar("nazar");
         }
       });
       beat2.addEventListener("pause", function () {
         if (!beat2.seeking && !_fadeTimer) {
           boncukPad.classList.remove("active-dj");
-          if (window.KISMET_setChar) window.KISMET_setChar("nazar");
         }
       });
     })();
@@ -1988,7 +1995,8 @@
         }
       }
 
-      function loop(t) { var d = t - lastTime; lastTime = t; update(d, t); render(); requestAnimationFrame(loop); }
+      var rafId = null;
+      function loop(t) { var d = t - lastTime; lastTime = t; update(d, t); render(); rafId = requestAnimationFrame(loop); }
 
       function flap() { if (state.over) return; if (!state.started) state.started = true; player.vy = state.jump; }
 
@@ -2020,7 +2028,8 @@
       });
 
       resize();
-      requestAnimationFrame(loop);
+      if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      rafId = requestAnimationFrame(loop);
 
       Promise.all([
         imgPromise(bgImg),
